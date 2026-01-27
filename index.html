@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Blood Pressure Monitor (ISH Standard)</title>
+    
+    <!-- PWA CONFIGURATION (Step 5) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4285f4">
+
     <!-- Chart.js for data visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <!-- jsPDF for PDF generation -->
@@ -254,8 +259,6 @@
         }
         .notification.show { transform: translateX(-50%) translateY(0); }
     </style>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4285f4">
 </head>
 <body>
     <div id="app-screen">
@@ -1107,285 +1110,86 @@
             const patient = db.patients.find(p => p.id === currentPatientId);
             const start = document.getElementById('report-start').value;
             const end = document.getElementById('report-end').value;
+            
+            if(!patient) return showNotification('No patient selected', 'error');
 
-            let filtered = db.readings.filter(r => r.patientId === currentPatientId);
-            if(start) filtered = filtered.filter(r => r.date >= start);
-            if(end) filtered = filtered.filter(r => r.date <= end);
-            filtered.sort((a,b) => new Date(a.date) - new Date(b.date));
+            doc.setFontSize(18);
+            doc.text(`Blood Pressure Report: ${patient.name}`, 14, 20);
+            
+            doc.setFontSize(11);
+            doc.text(`Date Range: ${start} to ${end}`, 14, 30);
+            
+            // Filter Data for Report
+            const filteredReadings = db.readings.filter(r => 
+                r.patientId === currentPatientId && 
+                r.date >= start && 
+                r.date <= end
+            ).sort((a,b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
 
-            if (filtered.length === 0) {
-                showNotification("No readings found for selected range", "error");
+            if(filteredReadings.length === 0) {
+                doc.text("No readings found in this range.", 14, 40);
+                doc.save(`BP_Report_${patient.name}.pdf`);
                 return;
             }
 
-            const stats = calculateStats(filtered);
-
-            // --- PAGE 1: SUMMARY & TABLE ---
-
-            // Header
-            doc.setFontSize(22);
-            doc.setTextColor(40, 40, 40);
-            doc.text("Blood Pressure Report (ISH Standard)", 14, 20);
+            let yPos = 45;
             
-            doc.setFontSize(12);
-            doc.setTextColor(80, 80, 80);
-            doc.text(`Patient: ${patient ? patient.name : 'Unknown'}`, 14, 30);
-            doc.text(`Date Range: ${start || 'Start'} to ${end || 'End'}`, 14, 36);
-            doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 42);
-
-            // Summary Box
-            doc.setDrawColor(200, 200, 200);
-            doc.setFillColor(245, 245, 245);
-            doc.roundedRect(14, 50, 182, 35, 3, 3, 'FD');
-            
-            doc.setFontSize(14);
-            doc.setTextColor(0, 0, 0);
-            doc.text("Summary Statistics", 20, 60);
-
-            doc.setFontSize(11);
-            doc.setTextColor(60, 60, 60);
-            
-            const col1 = 20;
-            const col2 = 80;
-            const col3 = 120; // Adjusted for spacing
-            let rowY = 68;
-
-            doc.text(`Average BP:`, col1, rowY);
-            doc.setFont(undefined, 'bold');
-            doc.text(`${stats.avgSys}/${stats.avgDia} mmHg`, col2, rowY);
-            doc.setFont(undefined, 'normal');
-
-            rowY += 7;
-            doc.text(`Systolic Range:`, col1, rowY);
-            doc.setFont(undefined, 'bold');
-            doc.setTextColor(200, 50, 50); 
-            doc.text(`${stats.minSys} - ${stats.maxSys}`, col2, rowY);
-            doc.setFont(undefined, 'normal');
-            doc.setTextColor(60, 60, 60);
-
-            doc.text(`Diastolic Range:`, col3, rowY);
-            doc.setFont(undefined, 'bold');
-            doc.setTextColor(50, 100, 200);
-            doc.text(`${stats.minDia} - ${stats.maxDia}`, 165, rowY);
-            doc.setFont(undefined, 'normal');
-            doc.setTextColor(60, 60, 60);
-
-            // Table Header
-            let y = 100;
+            // Table Headers
             doc.setFillColor(66, 133, 244);
-            doc.rect(14, y, 182, 10, 'F');
+            doc.rect(14, yPos, 182, 10, 'F');
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(10);
-            doc.setFont(undefined, 'bold');
+            doc.text("Date", 16, yPos + 7);
+            doc.text("Time", 40, yPos + 7);
+            doc.text("Sys", 65, yPos + 7);
+            doc.text("Dia", 90, yPos + 7);
+            doc.text("Pulse", 115, yPos + 7);
+            doc.text("Status", 140, yPos + 7);
             
-            doc.text("Date", 16, y+7);
-            doc.text("Time", 46, y+7);
-            doc.text("Sys", 76, y+7);
-            doc.text("Dia", 106, y+7);
-            doc.text("Pulse", 136, y+7);
-            doc.text("Status", 166, y+7);
-            
-            y += 10;
+            yPos += 10;
             doc.setTextColor(0, 0, 0);
-            doc.setFont(undefined, 'normal');
-            
+
             // Table Rows
-            filtered.forEach(r => {
-                if(y > 270) { 
-                    doc.addPage(); 
-                    y = 20; 
+            filteredReadings.forEach(r => {
+                if(yPos > 270) {
+                    doc.addPage();
+                    yPos = 20;
                 }
-                if (Math.floor((y-100)/10) % 2 === 0) {
-                    doc.setFillColor(250, 250, 250);
-                    doc.rect(14, y, 182, 10, 'F');
-                }
-                doc.text(r.date, 16, y+7);
-                doc.text(r.time, 46, y+7);
-                doc.text(r.sys.toString(), 76, y+7);
-                doc.text(r.dia.toString(), 106, y+7);
-                doc.text((r.pulse||'-').toString(), 136, y+7);
-                doc.text(getStatusLabel(r.status).toUpperCase(), 166, y+7);
-                y += 10;
+                doc.text(r.date, 16, yPos + 7);
+                doc.text(r.time, 40, yPos + 7);
+                doc.text(r.sys.toString(), 65, yPos + 7);
+                doc.text(r.dia.toString(), 90, yPos + 7);
+                doc.text((r.pulse || '-').toString(), 115, yPos + 7);
+                doc.text(getStatusLabel(r.status), 140, yPos + 7);
+                
+                yPos += 10;
+                doc.setDrawColor(220);
+                doc.line(14, yPos, 196, yPos);
             });
 
-            // Calculate Counts for Pie Chart - ISH Categories
-            const counts = { low: 0, normal: 0, 'high-normal': 0, grade1: 0, grade2: 0 };
-            filtered.forEach(r => { if(counts[r.status] !== undefined) counts[r.status]++; });
-
-            // Common Canvas & Context
-            const pdfCanvas = document.getElementById('pdfChartCanvas');
-            const pdfCtx = pdfCanvas.getContext('2d');
-
-            // White Background Plugin for Charts
-            const whiteBackgroundPlugin = {
-                id: 'customCanvasBackgroundColor',
-                beforeDraw: (chart) => {
-                    const ctx = chart.canvas.getContext('2d');
-                    ctx.save();
-                    ctx.globalCompositeOperation = 'destination-over';
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, chart.width, chart.height);
-                    ctx.restore();
-                }
-            };
-
-            // --- FUNCTION: DRAW PIE CHART (STEP 2) ---
-            const drawPieChart = () => {
-                // Reset Canvas for Pie
-                pdfCanvas.width = 800;
-                pdfCanvas.height = 600; // Taller for pie
-                pdfCtx.clearRect(0, 0, pdfCanvas.width, pdfCanvas.height);
-
-                const dataValues = [counts.low, counts.normal, counts['high-normal'], counts.grade1, counts.grade2];
-                const total = filtered.length;
-                const percentages = dataValues.map(v => ((v/total)*100).toFixed(1));
-
-                new Chart(pdfCtx, {
-                    type: 'pie',
-                    data: {
-                        labels: ['Low', 'Normal', 'High-Normal', 'Grade 1 HTN', 'Grade 2 HTN'],
-                        datasets: [{
-                            data: dataValues,
-                            backgroundColor: ['#4285f4', '#34a853', '#fbbc05', '#f57c00', '#d32f2f'],
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        animation: false,
-                        responsive: false,
-                        plugins: {
-                            legend: { position: 'right', labels: { font: { size: 16 }, color: 'black' } },
-                            title: { display: true, text: 'Distribution', font: { size: 20 }, color: 'black' }
-                        }
-                    },
-                    plugins: [whiteBackgroundPlugin, {
-                        id: 'pdfExporterPie',
-                        afterDraw: (chart) => {
-                            doc.addPage();
-                            doc.setFontSize(18);
-                            doc.text("BP Classification Breakdown (ISH)", 14, 20);
-                            
-                            const imgData = pdfCanvas.toDataURL('image/jpeg', 1.0);
-                            doc.addImage(imgData, 'JPEG', 30, 40, 140, 105);
-
-                            // Add Text Table for Percentages below chart
-                            let tableY = 160;
-                            doc.setFontSize(12);
-                            doc.text("Detailed Breakdown:", 14, 155);
-                            
-                            const categories = [
-                                { l: 'Low', c: counts.low, p: percentages[0], col: [66, 133, 244] },
-                                { l: 'Normal', c: counts.normal, p: percentages[1], col: [52, 168, 83] },
-                                { l: 'High-Normal', c: counts['high-normal'], p: percentages[2], col: [251, 188, 5] },
-                                { l: 'Grade 1', c: counts.grade1, p: percentages[3], col: [245, 124, 0] }, 
-                                { l: 'Grade 2', c: counts.grade2, p: percentages[4], col: [211, 47, 47] }
-                            ];
-
-                            categories.forEach(cat => {
-                                // Draw colored box
-                                doc.setFillColor(...cat.col);
-                                doc.rect(14, tableY - 4, 4, 4, 'F');
-                                doc.setTextColor(0,0,0);
-                                doc.text(`${cat.l}: ${cat.c} readings (${cat.p}%)`, 22, tableY);
-                                tableY += 8;
-                            });
-
-                            doc.save(`BP_Report_${patient ? patient.name : 'data'}.pdf`);
-                            chart.destroy();
-                        }
-                    }]
-                });
-            };
-
-            // --- FUNCTION: DRAW TREND CHART (STEP 1) ---
-            const drawTrendChart = () => {
-                // Reset Canvas for Line
-                pdfCanvas.width = 1000;
-                pdfCanvas.height = 500;
-                pdfCtx.clearRect(0, 0, pdfCanvas.width, pdfCanvas.height);
-
-                new Chart(pdfCtx, {
-                    type: 'line',
-                    data: {
-                        labels: filtered.map(r => r.date),
-                        datasets: [
-                            {
-                                label: 'Systolic',
-                                data: filtered.map(r => r.sys),
-                                borderColor: '#D32F2F',
-                                backgroundColor: 'transparent',
-                                borderWidth: 3,
-                                tension: 0.2,
-                                pointRadius: 4,
-                                pointBackgroundColor: '#D32F2F'
-                            },
-                            {
-                                label: 'Diastolic',
-                                data: filtered.map(r => r.dia),
-                                borderColor: '#1976D2',
-                                backgroundColor: 'transparent',
-                                borderWidth: 3,
-                                tension: 0.2,
-                                pointRadius: 4,
-                                pointBackgroundColor: '#1976D2'
-                            }
-                        ]
-                    },
-                    options: {
-                        animation: false,
-                        responsive: false,
-                        plugins: {
-                            legend: { position: 'top', labels: { color: 'black', font: { size: 14 } } }
-                        },
-                        scales: {
-                            y: {
-                                title: { display: true, text: 'mmHg', color: 'black', font: { size: 12, weight: 'bold' } },
-                                ticks: { color: '#333' },
-                                grid: { color: '#ccc', borderColor: 'black' }
-                            },
-                            x: {
-                                ticks: { color: '#333' },
-                                grid: { display: false }
-                            }
-                        }
-                    },
-                    plugins: [whiteBackgroundPlugin, {
-                        id: 'pdfExporterLine',
-                        afterDraw: (chart) => {
-                            doc.addPage();
-                            doc.setFontSize(18);
-                            doc.text("Trend Analysis", 14, 20);
-                            doc.setFontSize(12);
-                            doc.text(`Visual representation of BP readings.`, 14, 28);
-                            
-                            const imgData = pdfCanvas.toDataURL('image/jpeg', 1.0);
-                            doc.addImage(imgData, 'JPEG', 14, 35, 180, 90);
-                            
-                            chart.destroy();
-                            // Chain next chart
-                            drawPieChart();
-                        }
-                    }]
-                });
-            };
-
-            // Start the Chain
-            drawTrendChart();
+            doc.save(`BP_Report_${patient.name}.pdf`);
+            showNotification('PDF Downloaded');
         }
 
-        function showNotification(msg, type='success') {
+        /**
+         * NOTIFICATIONS
+         */
+        function showNotification(msg, type = 'info') {
             const el = document.getElementById('notification');
             const txt = document.getElementById('notification-text');
+            
             txt.textContent = msg;
             el.style.backgroundColor = type === 'error' ? '#d32f2f' : '#323232';
             el.classList.add('show');
-            setTimeout(() => el.classList.remove('show'), 3000);
+            
+            setTimeout(() => {
+                el.classList.remove('show');
+            }, 3000);
+        }
+
+        // PWA SERVICE WORKER REGISTRATION (Step 5 Code 2)
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.register("sw.js");
         }
     </script>
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
-}
-</script>
 </body>
 </html>
