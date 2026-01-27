@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <!-- PWA MANIFEST LINK -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <!-- THEME COLOR FOR ANDROID BAR -->
     <meta name="theme-color" content="#4285f4">
     
@@ -537,10 +537,10 @@
     <script>
         /**
          * PWA SERVICE WORKER REGISTRATION
-         * This code tells the browser to look for the offline-helper file.
          */
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
+                // IMPORTANT: This looks for service-worker.js in the SAME folder
                 navigator.serviceWorker.register('./service-worker.js')
                     .then(reg => console.log('Service Worker Registered'))
                     .catch(err => console.log('Service Worker Failed', err));
@@ -548,12 +548,36 @@
         }
 
         /**
-         * APPLICATION STATE & MOCK DATABASE
+         * APPLICATION STATE & SAFE DATABASE LOADING
+         * This section is updated to prevent "filter is not a function" error
          */
+        
+        // Helper to safely load array
+        function safeLoad(key) {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                // If data exists and IS an array, return it. Otherwise return empty []
+                return Array.isArray(data) ? data : [];
+            } catch (e) {
+                // If it crashes during loading, return empty []
+                return [];
+            }
+        }
+
+        // Helper to safely load object
+        function safeLoadObj(key, defaultObj) {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                return data && typeof data === 'object' && !Array.isArray(data) ? data : defaultObj;
+            } catch (e) {
+                return defaultObj;
+            }
+        }
+
         const db = {
-            patients: JSON.parse(localStorage.getItem('patients')) || [],
-            readings: JSON.parse(localStorage.getItem('readings')) || [],
-            settings: JSON.parse(localStorage.getItem('settings')) || { theme: 'light' }
+            patients: safeLoad('patients'),
+            readings: safeLoad('readings'),
+            settings: safeLoadObj('settings', { theme: 'light' })
         };
 
         let currentPatientId = localStorage.getItem('currentPatientId') || null;
@@ -592,7 +616,12 @@
             } else if (currentPatientId) {
                 // Ensure patient still exists
                 const exists = db.patients.find(p => p.id === currentPatientId);
-                if(exists) switchPatient(currentPatientId);
+                if(exists) {
+                    switchPatient(currentPatientId);
+                } else {
+                    currentPatientId = null; // Patient ID points to nothing
+                    document.getElementById('patient-modal').classList.add('open');
+                }
             } else {
                 // No patient scenario
                 document.getElementById('patient-modal').classList.add('open');
@@ -802,7 +831,8 @@
             const filterType = document.getElementById('date-filter').value;
             const searchText = document.getElementById('search-readings').value.toLowerCase();
 
-            let filtered = db.readings.filter(r => r.patientId === currentPatientId);
+            // SAFE CHECK: Ensure filtered is an array
+            let filtered = Array.isArray(db.readings) ? db.readings.filter(r => r.patientId === currentPatientId) : [];
 
             // Date Filter
             const today = new Date().toISOString().split('T')[0];
@@ -852,6 +882,9 @@
          * DASHBOARD & CHARTS
          */
         function updateDashboard() {
+            // SAFE CHECK: Ensure readings is an array
+            if (!Array.isArray(db.readings)) db.readings = [];
+            
             const patientReadings = db.readings.filter(r => r.patientId === currentPatientId);
             
             // Latest
@@ -1034,7 +1067,8 @@
                 calDiv.appendChild(div);
             }
 
-            // Days
+            // Days - SAFE CHECK
+            if (!Array.isArray(db.readings)) db.readings = [];
             const patientReadings = db.readings.filter(r => r.patientId === currentPatientId);
             
             for(let i=1; i<=daysInMonth; i++) {
@@ -1123,6 +1157,9 @@
             const start = document.getElementById('report-start').value;
             const end = document.getElementById('report-end').value;
 
+            // SAFE CHECK
+            if (!Array.isArray(db.readings)) db.readings = [];
+            
             let filtered = db.readings.filter(r => r.patientId === currentPatientId);
             if(start) filtered = filtered.filter(r => r.date >= start);
             if(end) filtered = filtered.filter(r => r.date <= end);
