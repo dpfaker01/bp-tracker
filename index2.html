@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4285f4">
+    <title>Blood Pressure Monitor (ISH Standard)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4285f4;
+            --secondary-color: #34a853;
+            --danger-color: #d32f2f;
+            --warning-color: #fbbc05;
+            --orange-color: #f57c00;
+            --dark-color: #202124;
+            --light-color: #f8f9fa;
+            --border-color: #dadce0;
+            --bg-color: #f5f5f5;
+            --card-bg: white;
+            --text-color: var(--dark-color);
+            --input-bg: white;
+            --modal-bg: white;
+            --header-bg: white;
+            --table-hover: #f8f9fa;
+            --empty-state-color: #5f6368;
+        }
+        [data-theme="dark"] {
+            --dark-color: #e8eaed;
+            --light-color: #202124;
+            --bg-color: #121212;
+            --card-bg: #1f1f1f;
+            --text-color: #e8eaed;
+            --input-bg: #2d2d2d;
+            --modal-bg: #2d2d2d;
+            --header-bg: #1f1f1f;
+            --border-color: #3c4043;
+            --table-hover: #2d2d2d;
+            --empty-state-color: #9aa0a6;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            width: 100%; height: 100%;
+        }
+        #app-screen { width: 100vw; min-height: 100vh; position: relative; padding-bottom: 40px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 10px; }
+        header {
+            background-color: var(--header-bg); box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px 0; position: sticky; top: 0; z-index: 100;
+        }
+        .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 10px; }
+        .logo { display: flex; align-items: center; font-size: 18px; font-weight: 500; color: var(--primary-color); }
+        .logo i { margin-right: 8px; font-size: 22px; }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-avatar {
+            width: 35px; height: 35px; border-radius: 50%; background-color: var(--primary-color); color: white;
+            display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 14px;
+        }
+        .tabs { display: flex; overflow-x: auto; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; padding-bottom: 5px; }
+        .tab { padding: 12px 16px; cursor: pointer; font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; color: var(--text-color); }
+        .tab.active { color: var(--primary-color); border-bottom: 2px solid var(--primary-color); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .card { background-color: var(--card-bg); border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 15px; margin-bottom: 15px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; color: var(--text-color); }
+        .card-title { font-size: 16px; font-weight: 600; }
+        .btn { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; gap: 8px; transition: all 0.2s; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-secondary { background-color: var(--input-bg); color: var(--primary-color); border: 1px solid var(--primary-color); }
+        .btn-danger { background-color: var(--danger-color); color: white; }
+        .btn-success { background-color: var(--secondary-color); color: white; }
+        .btn-warning { background-color: var(--warning-color); color: white; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .stat-label { font-size: 12px; color: #888; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 24px; font-weight: bold; color: var(--text-color); }
+        .stat-sub { font-size: 12px; margin-top: 5px; display: flex; justify-content: space-between; }
+        .stat-sub .min { color: var(--secondary-color); }
+        .stat-sub .max { color: var(--danger-color); }
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--input-bg); color: var(--text-color); font-size: 16px; }
+        .grid { display: grid; grid-gap: 15px; }
+        .grid-2 { grid-template-columns: 1fr; }
+        .grid-3 { grid-template-columns: 1fr; }
+        .grid-4 { grid-template-columns: 1fr; }
+        @media (min-width: 768px) { 
+            .grid-2 { grid-template-columns: repeat(2, 1fr); } 
+            .grid-3 { grid-template-columns: repeat(3, 1fr); } 
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (min-width: 1024px) {
+            .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        }
+        .table-responsive { width: 100%; overflow-x: auto; }
+        .table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 14px; }
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .badge-normal { background-color: #e6f4ea; color: #1e8e3e; }
+        .badge-high-normal { background-color: #fef7e0; color: #b06000; }
+        .badge-grade1 { background-color: #ffe0b2; color: #e65100; }
+        .badge-grade2 { background-color: #fad2cf; color: #c62828; }
+        .badge-low { background-color: #e8f0fe; color: #1967d2; }
+        [data-theme="dark"] .badge-normal { background-color: rgba(52, 168, 83, 0.2); color: #81c995; }
+        [data-theme="dark"] .badge-high-normal { background-color: rgba(251, 188, 5, 0.2); color: #fdd663; }
+        [data-theme="dark"] .badge-grade1 { background-color: rgba(245, 124, 0, 0.2); color: #ffb74d; }
+        [data-theme="dark"] .badge-grade2 { background-color: rgba(234, 67, 53, 0.2); color: #f28b82; }
+        [data-theme="dark"] .badge-low { background-color: rgba(25, 103, 210, 0.2); color: #8ab4f8; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.open { display: flex; }
+        .modal-content { background-color: var(--modal-bg); border-radius: 8px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; }
+        .modal-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 15px; overflow-y: auto; }
+        .modal-footer { padding: 15px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; }
+        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background-color: var(--border-color); border: 1px solid var(--border-color); }
+        .calendar-header { background-color: var(--table-hover); padding: 10px; text-align: center; font-weight: bold; font-size: 12px; }
+        .calendar-day { background-color: var(--card-bg); min-height: 80px; padding: 5px; cursor: pointer; position: relative; }
+        .calendar-day.today { background-color: rgba(66, 133, 244, 0.1); }
+        .calendar-day.other-month { background-color: var(--table-hover); opacity: 0.5; }
+        .day-dot { height: 6px; width: 6px; background-color: var(--secondary-color); border-radius: 50%; display: inline-block; margin: 1px; }
+        .hidden { display: none !important; }
+        .empty-state { text-align: center; padding: 20px; color: var(--empty-state-color); }
+        .theme-toggle-btn { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); padding: 8px 12px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .chart-wrapper { position: relative; height: 250px; width: 100%; }
+        .chart-wrapper-lg { position: relative; height: 300px; width: 100%; }
+        .chart-wrapper-sm { position: relative; height: 200px; width: 100%; }
+        .notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background-color: #323232; color: white; padding: 12px 24px; border-radius: 4px; z-index: 2000; transition: transform 0.3s; box-shadow: 0 3px 6px rgba(0,0,0,0.16); display: flex; align-items: center; gap: 10px; }
+        .notification.show { transform: translateX(-50%) translateY(0); }
+
+        .analytics-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        @media (min-width: 1024px) { .analytics-grid { grid-template-columns: 2fr 1fr; } }
+
+        .stat-card { background: var(--card-bg); border-radius: 8px; padding: 20px; text-align: center; border: 1px solid var(--border-color); }
+        .stat-card.primary { border-left: 4px solid var(--primary-color); }
+        .stat-card.success { border-left: 4px solid var(--secondary-color); }
+        .stat-card.warning { border-left: 4px solid var(--warning-color); }
+        .stat-card.danger { border-left: 4px solid var(--danger-color); }
+
+        .distribution-item { display: flex; align-items: center; margin-bottom: 10px; padding: 8px; border-radius: 6px; background: var(--bg-color); }
+        .distribution-bar { flex-grow: 1; height: 8px; background: var(--border-color); border-radius: 4px; margin: 0 10px; overflow: hidden; }
+        .distribution-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        .distribution-label { font-size: 12px; font-weight: 500; min-width: 100px; }
+        .distribution-value { font-size: 12px; font-weight: bold; min-width: 40px; text-align: right; }
+
+        .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: center; }
+        .loading-overlay.show { display: flex; }
+        .spinner { width: 50px; height: 50px; border: 4px solid var(--border-color); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div id="app-screen">
+        <header>
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-heartbeat"></i>
+                    <span>BP Tracker (ISH)</span>
+                </div>
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">U</div>
+                    <div class="user-name" id="user-name">User</div>
+                    <button id="theme-toggle-btn" class="theme-toggle-btn"><i class="fas fa-sun"></i></button>
+                </div>
+            </div>
+        </header>
+        <div class="container">
+            <div class="card">
+                <div class="grid grid-2" style="align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Current Patient</label>
+                        <select id="patient-select" class="form-control"><option value="">Select a patient</option></select>
+                    </div>
+                    <button id="add-patient-btn" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add Patient</button>
+                </div>
+            </div>
+            <div class="tabs">
+                <div class="tab active" data-tab="dashboard">Dashboard</div>
+                <div class="tab" data-tab="readings">Readings</div>
+                <div class="tab" data-tab="calendar">Calendar</div>
+                <div class="tab" data-tab="reports">Reports</div>
+                <div class="tab" data-tab="settings">Settings</div>
+            </div>
+
+            <div id="dashboard-tab" class="tab-content active">
+                <div class="grid grid-3">
+                    <div class="card"><div class="card-header">Latest Reading</div><div id="latest-reading-container"></div></div>
+                    <div class="card"><div class="card-header">Stats (Last 30 Days)</div><div id="average-reading-container"></div></div>
+                    <div class="card"><div class="card-header">Status (ISH)</div><div id="bp-status-container"></div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><span>BP Trend</span><select id="trend-period" class="form-control" style="width: auto; padding: 5px;"><option value="7">7 Days</option><option value="30" selected>30 Days</option><option value="90">90 Days</option></select></div>
+                    <div class="chart-wrapper"><canvas id="bpTrendChart"></canvas></div>
+                </div>
+            </div>
+
+            <div id="readings-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header"><span>History</span><button id="add-reading-btn" class="btn btn-primary"><i class="fas fa-plus"></i> Add</button></div>
+                    <div class="grid grid-2">
+                        <div class="form-group"><label class="form-label">Filter</label><select id="date-filter" class="form-control"><option value="all">All Time</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option></select></div>
+                        <div class="form-group"><label class="form-label">Search</label><input type="text" id="search-readings" class="form-control" placeholder="Search..."></div>
+                    </div>
+                    <div class="table-responsive"><table class="table"><thead><tr><th>Date</th><th>Sys</th><th>Dia</th><th>Pulse</th><th>Status</th><th>Action</th></tr></thead><tbody id="readings-table-body"></tbody></table></div>
+                    <div id="no-readings-msg" class="empty-state hidden">No readings found.</div>
+                </div>
+            </div>
+
+            <div id="calendar-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header"><button id="prev-month" class="btn btn-secondary"><i class="fas fa-chevron-left"></i></button><span id="current-month-label" style="flex-grow:1; text-align:center; font-weight:bold;"></span><button id="next-month" class="btn btn-secondary"><i class="fas fa-chevron-right"></i></button></div>
+                    <div class="calendar"><div class="calendar-header">Sun</div><div class="calendar-header">Mon</div><div class="calendar-header">Tue</div><div class="calendar-header">Wed</div><div class="calendar-header">Thu</div><div class="calendar-header">Fri</div><div class="calendar-header">Sat</div></div>
+                </div>
+            </div>
+
+            <div id="reports-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fas fa-chart-pie"></i> Advanced Analytics Report</span>
+                    </div>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" id="report-start" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">End Date</label>
+                            <input type="date" id="report-end" class="form-control">
+                        </div>
+                    </div>
+                    <div class="grid grid-2" style="margin-top: 15px;">
+                        <button id="generate-report-btn" class="btn btn-primary">
+                            <i class="fas fa-chart-bar"></i> Generate Analytics Report
+                        </button>
+                        <button id="download-pdf-btn" class="btn btn-danger" disabled>
+                            <i class="fas fa-file-pdf"></i> Download PDF Report
+                        </button>
+                    </div>
+                </div>
+
+                <div id="analytics-dashboard" class="hidden">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Summary Statistics</span>
+                            <span id="report-period-label" style="font-size: 12px; color: var(--empty-state-color);"></span>
+                        </div>
+                        <div class="grid grid-4">
+                            <div class="stat-card primary">
+                                <div class="stat-label">Average BP</div>
+                                <div class="stat-value" id="avg-bp-display">--/--</div>
+                                <div style="font-size: 11px; color: var(--empty-state-color); margin-top: 5px;">mmHg</div>
+                            </div>
+                            <div class="stat-card success">
+                                <div class="stat-label">Total Readings</div>
+                                <div class="stat-value" id="total-readings-display">--</div>
+                                <div style="font-size: 11px; color: var(--empty-state-color); margin-top: 5px;">measurements</div>
+                            </div>
+                            <div class="stat-card warning">
+                                <div class="stat-label">Systolic Range</div>
+                                <div class="stat-value" id="sys-range-display">--</div>
+                                <div style="font-size: 11px; color: var(--empty-state-color); margin-top: 5px;">min-max</div>
+                            </div>
+                            <div class="stat-card danger">
+                                <div class="stat-label">Diastolic Range</div>
+                                <div class="stat-value" id="dia-range-display">--</div>
+                                <div style="font-size: 11px; color: var(--empty-state-color); margin-top: 5px;">min-max</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="analytics-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">BP Trend Analysis</span>
+                            </div>
+                            <div class="chart-wrapper-lg">
+                                <canvas id="reportTrendChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">Classification Distribution</span>
+                            </div>
+                            <div class="chart-wrapper-sm">
+                                <canvas id="distributionChart"></canvas>
+                            </div>
+                            <div id="distribution-legend" style="margin-top: 15px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Detailed Breakdown</span>
+                        </div>
+                        <div id="distribution-bars"></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Readings Detail</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table" id="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date/Time</th>
+                                        <th>Systolic</th>
+                                        <th>Diastolic</th>
+                                        <th>Pulse</th>
+                                        <th>Classification</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="report-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">Data Management</div>
+                    <div class="form-group">
+                        <div class="grid grid-2"><button id="export-json-btn" class="btn btn-success"><i class="fas fa-download"></i> Backup Data</button><button id="import-json-btn" class="btn btn-warning"><i class="fas fa-upload"></i> Restore Data</button></div>
+                        <input type="file" id="import-file-input" accept=".json" style="display:none;">
+                    </div>
+                </div>
+                <div class="card"><div class="card-header">About</div><p>Blood Pressure Monitor v3.0 (PWA Ready)</p><p style="font-size: 12px; color: var(--empty-state-color); margin-top: 10px;">Compliant with ISH 2020 Guidelines</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div id="patient-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Add Patient</h3><button class="close-modal">&times;</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label class="form-label">Name</label><input type="text" id="p-name" class="form-control"></div>
+                <div class="grid grid-2">
+                    <div class="form-group"><label class="form-label">Age</label><input type="number" id="p-age" class="form-control"></div>
+                    <div class="form-group"><label class="form-label">Gender</label><select id="p-gender" class="form-control"><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+                </div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary close-modal">Cancel</button><button id="save-patient" class="btn btn-primary">Save</button></div>
+        </div>
+    </div>
+
+    <div id="reading-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Add Reading</h3><button class="close-modal">&times;</button></div>
+            <div class="modal-body">
+                <div class="grid grid-2">
+                    <div class="form-group"><label class="form-label">Date</label><input type="date" id="r-date" class="form-control"></div>
+                    <div class="form-group"><label class="form-label">Time</label><input type="time" id="r-time" class="form-control"></div>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group"><label class="form-label">Systolic</label><input type="number" id="r-sys" class="form-control" placeholder="120"></div>
+                    <div class="form-group"><label class="form-label">Diastolic</label><input type="number" id="r-dia" class="form-control" placeholder="80"></div>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group"><label class="form-label">Pulse</label><input type="number" id="r-pulse" class="form-control" placeholder="70"></div>
+                    <div class="form-group"><label class="form-label">Weight</label><input type="number" id="r-weight" class="form-control"></div>
+                </div>
+                <div class="form-group"><label class="form-label">Notes</label><textarea id="r-notes" class="form-control" rows="3"></textarea></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary close-modal">Cancel</button><button id="save-reading" class="btn btn-primary">Save</button></div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"><i class="fas fa-info-circle"></i><span id="notification-text">Message</span></div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker Registered'))
+                    .catch(err => console.log('Service Worker Failed', err));
+            });
+        }
+
+        const DataStore = {
+            load(key, defaultVal = []) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    return Array.isArray(data) ? data : defaultVal;
+                } catch(e) { return defaultVal; }
+            },
+            loadObj(key, defaultVal = {}) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    return data && typeof data === 'object' && !Array.isArray(data) ? data : defaultVal;
+                } catch(e) { return defaultVal; }
+            },
+            save(key, data) {
+                localStorage.setItem(key, JSON.stringify(data));
+            }
+        };
+
+        const AppState = {
+            patients: DataStore.load('patients'),
+            readings: DataStore.load('readings'),
+            settings: DataStore.loadObj('settings', { theme: 'light' }),
+            currentPatientId: localStorage.getItem('currentPatientId') || null,
+            reportData: null,
+            charts: {}
+        };
+
+        const Utils = {
+            generateId: () => Date.now().toString(36) + Math.random().toString(36).substr(2),
+            formatDate: (dateStr) => new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            formatDateTime: (dateStr, timeStr) => `${Utils.formatDate(dateStr)} ${timeStr}`,
+            debounce: (fn, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => fn(...args), delay); }; }
+        };
+
+        const BPEngine = {
+            classify(sys, dia) {
+                if (sys >= 160 || dia >= 100) return { status: 'grade2', label: 'Grade 2 HTN', color: '#d32f2f', risk: 'High' };
+                if (sys >= 140 || dia >= 90) return { status: 'grade1', label: 'Grade 1 HTN', color: '#f57c00', risk: 'Moderate' };
+                if (sys >= 130 || dia >= 85) return { status: 'high-normal', label: 'High-Normal', color: '#fbbc05', risk: 'Elevated' };
+                if (sys < 90 && dia < 60) return { status: 'low', label: 'Low BP', color: '#4285f4', risk: 'Low' };
+                return { status: 'normal', label: 'Normal', color: '#34a853', risk: 'Optimal' };
+            },
+            calculateStats(readings) {
+                if (!readings || readings.length === 0) return null;
+                const sys = readings.map(r => r.sys);
+                const dia = readings.map(r => r.dia);
+                const pulse = readings.map(r => r.pulse || 0).filter(p => p > 0);
+                return {
+                    count: readings.length,
+                    avgSys: Math.round(sys.reduce((a,b) => a+b, 0) / sys.length),
+                    avgDia: Math.round(dia.reduce((a,b) => a+b, 0) / dia.length),
+                    minSys: Math.min(...sys),
+                    maxSys: Math.max(...sys),
+                    minDia: Math.min(...dia),
+                    maxDia: Math.max(...dia),
+                    avgPulse: pulse.length > 0 ? Math.round(pulse.reduce((a,b) => a+b, 0) / pulse.length) : 0
+                };
+            },
+            calculateDistribution(readings) {
+                const dist = { normal: 0, 'high-normal': 0, grade1: 0, grade2: 0, low: 0 };
+                readings.forEach(r => { dist[r.status] = (dist[r.status] || 0) + 1; });
+                return dist;
+            }
+        };
+
+        const UI = {
+            showNotification(message, type = 'success') {
+                const notif = document.getElementById('notification');
+                const text = document.getElementById('notification-text');
+                text.textContent = message;
+                notif.style.backgroundColor = type === 'error' ? '#d32f2f' : '#323232';
+                notif.classList.add('show');
+                setTimeout(() => notif.classList.remove('show'), 3000);
+            },
+            toggleLoading(show) {
+                document.getElementById('loading-overlay').classList.toggle('show', show);
+            },
+            initTheme() {
+                document.documentElement.setAttribute('data-theme', AppState.settings.theme);
+                const icon = document.querySelector('#theme-toggle-btn i');
+                icon.className = AppState.settings.theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            },
+            toggleTheme() {
+                AppState.settings.theme = AppState.settings.theme === 'light' ? 'dark' : 'light';
+                DataStore.save('settings', AppState.settings);
+                UI.initTheme();
+                if (AppState.reportData) ReportGenerator.renderDashboard(AppState.reportData);
+                Dashboard.update();
+            }
+        };
+
+        const ChartManager = {
+            destroy(chartName) {
+                if (AppState.charts[chartName]) {
+                    AppState.charts[chartName].destroy();
+                    delete AppState.charts[chartName];
+                }
+            },
+            createTrendChart(canvasId, readings, isDark) {
+                this.destroy('trend');
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                const textColor = isDark ? '#e8eaed' : '#5f6368';
+                AppState.charts.trend = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: readings.map(r => Utils.formatDate(r.date)),
+                        datasets: [
+                            { label: 'Systolic', data: readings.map(r => r.sys), borderColor: '#ea4335', backgroundColor: 'rgba(234, 67, 53, 0.1)', tension: 0.3, fill: true },
+                            { label: 'Diastolic', data: readings.map(r => r.dia), borderColor: '#4285f4', backgroundColor: 'rgba(66, 133, 244, 0.1)', tension: 0.3, fill: true }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { intersect: false, mode: 'index' },
+                        plugins: {
+                            legend: { labels: { color: textColor } },
+                            tooltip: { callbacks: { afterLabel: (context) => { const r = readings[context.dataIndex]; return `Status: ${BPEngine.classify(r.sys, r.dia).label}`; } } }
+                        },
+                        scales: {
+                            y: { ticks: { color: textColor }, grid: { color: isDark ? '#3c4043' : '#e0e0e0' } },
+                            x: { ticks: { color: textColor, maxTicksLimit: 8 }, grid: { display: false } }
+                        }
+                    }
+                });
+            },
+            createDistributionChart(canvasId, distribution, isDark) {
+                this.destroy('distribution');
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                const labels = ['Normal', 'High-Normal', 'Grade 1 HTN', 'Grade 2 HTN', 'Low BP'];
+                const data = [distribution.normal || 0, distribution['high-normal'] || 0, distribution.grade1 || 0, distribution.grade2 || 0, distribution.low || 0];
+                const colors = ['#34a853', '#fbbc05', '#f57c00', '#d32f2f', '#4285f4'];
+                AppState.charts.distribution = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, borderColor: isDark ? '#1f1f1f' : '#ffffff' }] },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '60%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: (context) => { const total = data.reduce((a,b) => a+b, 0); const pct = ((context.raw / total) * 100).toFixed(1); return `${context.label}: ${context.raw} (${pct}%)`; } } }
+                        }
+                    }
+                });
+                const legendContainer = document.getElementById('distribution-legend');
+                legendContainer.innerHTML = '';
+                labels.forEach((label, idx) => {
+                    if (data[idx] > 0) {
+                        const item = document.createElement('div');
+                        item.className = 'distribution-item';
+                        item.innerHTML = `<div style="width: 12px; height: 12px; background: ${colors[idx]}; border-radius: 50%; margin-right: 8px;"></div><span style="flex-grow: 1; font-size: 12px;">${label}</span><span style="font-weight: bold; font-size: 12px;">${data[idx]}</span>`;
+                        legendContainer.appendChild(item);
+                    }
+                });
+            }
+        };
+
+        const ReportGenerator = {
+            generate(startDate, endDate) {
+                if (!AppState.currentPatientId) { UI.showNotification('Please select a patient first', 'error'); return null; }
+                let filtered = AppState.readings.filter(r => r.patientId === AppState.currentPatientId);
+                if (startDate) filtered = filtered.filter(r => r.date >= startDate);
+                if (endDate) filtered = filtered.filter(r => r.date <= endDate);
+                filtered.sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
+                if (filtered.length === 0) { UI.showNotification('No readings found for selected period', 'error'); return null; }
+                return { readings: filtered, stats: BPEngine.calculateStats(filtered), distribution: BPEngine.calculateDistribution(filtered), period: { start: startDate, end: endDate } };
+            },
+            renderDashboard(report) {
+                document.getElementById('analytics-dashboard').classList.remove('hidden');
+                document.getElementById('download-pdf-btn').disabled = false;
+                const periodText = report.period.start && report.period.end ? `${Utils.formatDate(report.period.start)} - ${Utils.formatDate(report.period.end)}` : 'All Time';
+                document.getElementById('report-period-label').textContent = periodText;
+                document.getElementById('avg-bp-display').textContent = `${report.stats.avgSys}/${report.stats.avgDia}`;
+                document.getElementById('total-readings-display').textContent = report.stats.count;
+                document.getElementById('sys-range-display').textContent = `${report.stats.minSys}-${report.stats.maxSys}`;
+                document.getElementById('dia-range-display').textContent = `${report.stats.minDia}-${report.stats.maxDia}`;
+                const isDark = AppState.settings.theme === 'dark';
+                ChartManager.createTrendChart('reportTrendChart', report.readings, isDark);
+                ChartManager.createDistributionChart('distributionChart', report.distribution, isDark);
+                this.renderDistributionBars(report.distribution, report.stats.count);
+                this.renderDataTable(report.readings);
+                AppState.reportData = report;
+            },
+            renderDistributionBars(dist, total) {
+                const container = document.getElementById('distribution-bars');
+                container.innerHTML = '';
+                const categories = [
+                    { key: 'normal', label: 'Normal', color: '#34a853' },
+                    { key: 'high-normal', label: 'High-Normal', color: '#fbbc05' },
+                    { key: 'grade1', label: 'Grade 1 HTN', color: '#f57c00' },
+                    { key: 'grade2', label: 'Grade 2 HTN', color: '#d32f2f' },
+                    { key: 'low', label: 'Low BP', color: '#4285f4' }
+                ];
+                categories.forEach(cat => {
+                    const count = dist[cat.key] || 0;
+                    const pct = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+                    const item = document.createElement('div');
+                    item.className = 'distribution-item';
+                    item.innerHTML = `<span class="distribution-label">${cat.label}</span><div class="distribution-bar"><div class="distribution-fill" style="width: ${pct}%; background: ${cat.color};"></div></div><span class="distribution-value">${count}</span><span style="font-size: 11px; color: #888; min-width: 50px; text-align: right;">${pct}%</span>`;
+                    container.appendChild(item);
+                });
+            },
+            renderDataTable(readings) {
+                const tbody = document.getElementById('report-table-body');
+                tbody.innerHTML = '';
+                readings.forEach(r => {
+                    const classification = BPEngine.classify(r.sys, r.dia);
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${Utils.formatDateTime(r.date, r.time)}</td><td style="color: var(--danger-color); font-weight: 500;">${r.sys}</td><td style="color: var(--primary-color); font-weight: 500;">${r.dia}</td><td>${r.pulse || '-'}</td><td><span class="badge badge-${classification.status}">${classification.label}</span></td>`;
+                    tbody.appendChild(row);
+                });
+            },
+            generatePDF() {
+                if (!AppState.reportData) { UI.showNotification('Generate report first', 'error'); return; }
+                UI.toggleLoading(true);
+                setTimeout(() => {
+                    try {
+                        const { jsPDF } = window.jspdf;
+                        const doc = new jsPDF();
+                        const patient = AppState.patients.find(p => p.id === AppState.currentPatientId);
+                        const r = AppState.reportData;
+                        doc.setFillColor(66, 133, 244);
+                        doc.rect(0, 0, 210, 40, 'F');
+                        doc.setTextColor(255, 255, 255);
+                        doc.setFontSize(24);
+                        doc.text('Blood Pressure Report', 105, 25, { align: 'center' });
+                        doc.setTextColor(0, 0, 0);
+                        doc.setFontSize(12);
+                        doc.text(`Patient: ${patient ? patient.name : 'Unknown'}`, 14, 55);
+                        doc.text(`Period: ${r.period.start || 'All'} to ${r.period.end || 'All'}`, 14, 62);
+                        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 69);
+                        doc.setFillColor(240, 240, 240);
+                        doc.rect(14, 75, 182, 35, 'F');
+                        doc.setFontSize(14);
+                        doc.setTextColor(66, 133, 244);
+                        doc.text(`Average: ${r.stats.avgSys}/${r.stats.avgDia} mmHg`, 20, 88);
+                        doc.setFontSize(10);
+                        doc.setTextColor(100, 100, 100);
+                        doc.text(`Range: ${r.stats.minSys}-${r.stats.maxSys} / ${r.stats.minDia}-${r.stats.maxDia}`, 20, 98);
+                        doc.text(`Total Readings: ${r.stats.count}`, 120, 88);
+                        doc.setFontSize(14);
+                        doc.setTextColor(0, 0, 0);
+                        doc.text('Classification Distribution', 14, 125);
+                        let yPos = 135;
+                        const categories = [
+                            { key: 'normal', label: 'Normal', color: [52, 168, 83] },
+                            { key: 'high-normal', label: 'High-Normal', color: [251, 188, 5] },
+                            { key: 'grade1', label: 'Grade 1 HTN', color: [245, 124, 0] },
+                            { key: 'grade2', label: 'Grade 2 HTN', color: [211, 47, 47] },
+                            { key: 'low', label: 'Low BP', color: [66, 133, 244] }
+                        ];
+                        categories.forEach(cat => {
+                            const count = r.distribution[cat.key] || 0;
+                            const pct = r.stats.count > 0 ? ((count / r.stats.count) * 100).toFixed(1) : 0;
+                            doc.setFillColor(...cat.color);
+                            doc.rect(14, yPos - 3, 5, 5, 'F');
+                            doc.setTextColor(0, 0, 0);
+                            doc.setFontSize(10);
+                            doc.text(`${cat.label}: ${count} (${pct}%)`, 22, yPos);
+                            yPos += 8;
+                        });
+                        if (typeof doc.autoTable === 'function') {
+                            doc.autoTable({
+                                startY: 180,
+                                head: [['Date/Time', 'Sys', 'Dia', 'Pulse', 'Status']],
+                                body: r.readings.map(reading => {
+                                    const cls = BPEngine.classify(reading.sys, reading.dia);
+                                    return [Utils.formatDateTime(reading.date, reading.time), reading.sys, reading.dia, reading.pulse || '-', cls.label];
+                                }),
+                                styles: { fontSize: 9 },
+                                headStyles: { fillColor: [66, 133, 244] }
+                            });
+                        }
+                        doc.save(`BP_Report_${patient ? patient.name.replace(/\s+/g, '_') : 'Patient'}_${new Date().toISOString().split('T')[0]}.pdf`);
+                        UI.showNotification('PDF downloaded successfully');
+                    } catch (err) {
+                        console.error('PDF Error:', err);
+                        UI.showNotification('Error generating PDF', 'error');
+                    } finally {
+                        UI.toggleLoading(false);
+                    }
+                }, 500);
+            }
+        };
+
+        function setupEventListeners() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
+                    if (tab.dataset.tab === 'calendar') Calendar.render();
+                    if (tab.dataset.tab === 'dashboard') Dashboard.update();
+                });
+            });
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', (e) => e.target.closest('.modal').classList.remove('open'));
+            });
+            document.getElementById('add-patient-btn').addEventListener('click', () => {
+                document.getElementById('p-name').value = '';
+                document.getElementById('patient-modal').classList.add('open');
+            });
+            document.getElementById('add-reading-btn').addEventListener('click', () => {
+                if (!AppState.currentPatientId) return UI.showNotification('Select patient first', 'error');
+                const now = new Date();
+                document.getElementById('r-date').valueAsDate = now;
+                document.getElementById('r-time').value = now.toTimeString().substr(0, 5);
+                document.getElementById('reading-modal').classList.add('open');
+            });
+            document.getElementById('save-patient').addEventListener('click', Patient.save);
+            document.getElementById('save-reading').addEventListener('click', Reading.save);
+            document.getElementById('date-filter').addEventListener('change', Reading.renderTable);
+            document.getElementById('search-readings').addEventListener('input', Utils.debounce(Reading.renderTable, 300));
+            document.getElementById('trend-period').addEventListener('change', Dashboard.update);
+            document.getElementById('prev-month').addEventListener('click', () => Calendar.changeMonth(-1));
+            document.getElementById('next-month').addEventListener('click', () => Calendar.changeMonth(1));
+            document.getElementById('generate-report-btn').addEventListener('click', () => {
+                const start = document.getElementById('report-start').value;
+                const end = document.getElementById('report-end').value;
+                const report = ReportGenerator.generate(start, end);
+                if (report) ReportGenerator.renderDashboard(report);
+            });
+            document.getElementById('download-pdf-btn').addEventListener('click', () => ReportGenerator.generatePDF());
+            document.getElementById('export-json-btn').addEventListener('click', Data.exportJSON);
+            document.getElementById('import-json-btn').addEventListener('click', () => document.getElementById('import-file-input').click());
+            document.getElementById('import-file-input').addEventListener('change', Data.importJSON);
+            document.getElementById('theme-toggle-btn').addEventListener('click', UI.toggleTheme);
+            document.getElementById('patient-select').addEventListener('change', (e) => Patient.switch(e.target.value));
+        }
+
+        const Patient = {
+            load() {
+                const select = document.getElementById('patient-select');
+                select.innerHTML = '<option value="">Select a patient</option>';
+                AppState.patients.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = p.name;
+                    select.appendChild(opt);
+                });
+            },
+            save() {
+                const name = document.getElementById('p-name').value.trim();
+                if (!name) return UI.showNotification('Name required', 'error');
+                const patient = { id: Utils.generateId(), name, age: document.getElementById('p-age').value, gender: document.getElementById('p-gender').value };
+                AppState.patients.push(patient);
+                DataStore.save('patients', AppState.patients);
+                Patient.load();
+                Patient.switch(patient.id);
+                document.getElementById('patient-modal').classList.remove('open');
+                UI.showNotification('Patient added successfully');
+            },
+            switch(id) {
+                AppState.currentPatientId = id;
+                localStorage.setItem('currentPatientId', id);
+                document.getElementById('patient-select').value = id;
+                const patient = AppState.patients.find(p => p.id === id);
+                if (patient) {
+                    document.getElementById('user-name').textContent = patient.name;
+                    document.getElementById('user-avatar').textContent = patient.name.charAt(0).toUpperCase();
+                    Dashboard.update();
+                    Reading.renderTable();
+                }
+            }
+        };
+
+        const Reading = {
+            save() {
+                if (!AppState.currentPatientId) return;
+                const sys = parseInt(document.getElementById('r-sys').value);
+                const dia = parseInt(document.getElementById('r-dia').value);
+                if (!document.getElementById('r-date').value || !sys || !dia) return UI.showNotification('Fill required fields', 'error');
+                const classification = BPEngine.classify(sys, dia);
+                const reading = {
+                    id: Utils.generateId(), patientId: AppState.currentPatientId,
+                    date: document.getElementById('r-date').value, time: document.getElementById('r-time').value,
+                    sys, dia, pulse: parseInt(document.getElementById('r-pulse').value) || 0,
+                    weight: document.getElementById('r-weight').value, notes: document.getElementById('r-notes').value,
+                    status: classification.status, timestamp: Date.now()
+                };
+                AppState.readings.push(reading);
+                DataStore.save('readings', AppState.readings);
+                document.getElementById('r-sys').value = ''; document.getElementById('r-dia').value = ''; document.getElementById('r-pulse').value = ''; document.getElementById('r-notes').value = '';
+                document.getElementById('reading-modal').classList.remove('open');
+                Dashboard.update();
+                Reading.renderTable();
+                UI.showNotification('Reading saved');
+            },
+            renderTable() {
+                const tbody = document.getElementById('readings-table-body');
+                tbody.innerHTML = '';
+                let filtered = AppState.readings.filter(r => r.patientId === AppState.currentPatientId);
+                const filterType = document.getElementById('date-filter').value;
+                const searchTerm = document.getElementById('search-readings').value.toLowerCase();
+                const today = new Date().toISOString().split('T')[0];
+                if (filterType === 'today') filtered = filtered.filter(r => r.date === today);
+                if (filterType === 'week') { const d = new Date(); d.setDate(d.getDate() - 7); filtered = filtered.filter(r => new Date(r.date) >= d); }
+                if (filterType === 'month') { const d = new Date(); d.setMonth(d.getMonth() - 1); filtered = filtered.filter(r => new Date(r.date) >= d); }
+                if (searchTerm) filtered = filtered.filter(r => r.notes && r.notes.toLowerCase().includes(searchTerm));
+                filtered.sort((a, b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
+                if (filtered.length === 0) document.getElementById('no-readings-msg').classList.remove('hidden');
+                else {
+                    document.getElementById('no-readings-msg').classList.add('hidden');
+                    filtered.forEach(r => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td>${r.date}<br><small>${r.time}</small></td><td style="color:var(--danger-color); font-weight:500;">${r.sys}</td><td style="color:var(--primary-color); font-weight:500;">${r.dia}</td><td>${r.pulse || '-'}</td><td><span class="badge badge-${r.status}">${BPEngine.classify(r.sys, r.dia).label}</span></td><td><button class="btn btn-danger" style="padding:4px 8px;" onclick="Reading.delete('${r.id}')"><i class="fas fa-trash"></i></button></td>`;
+                        tbody.appendChild(tr);
+                    });
+                }
+            },
+            delete(id) {
+                if (!confirm('Delete this reading?')) return;
+                AppState.readings = AppState.readings.filter(r => r.id !== id);
+                DataStore.save('readings', AppState.readings);
+                Dashboard.update();
+                Reading.renderTable();
+            }
+        };
+
+        const Dashboard = {
+            update() {
+                const patientReadings = AppState.readings.filter(r => r.patientId === AppState.currentPatientId);
+                if (patientReadings.length === 0) {
+                    document.getElementById('latest-reading-container').innerHTML = '<div class="empty-state">No readings</div>';
+                    document.getElementById('average-reading-container').innerHTML = '<div class="empty-state">No data</div>';
+                    document.getElementById('bp-status-container').innerHTML = '<div class="empty-state">No data</div>';
+                    ChartManager.destroy('trend');
+                    return;
+                }
+                patientReadings.sort((a, b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
+                const latest = patientReadings[0];
+                const latestClass = BPEngine.classify(latest.sys, latest.dia);
+                document.getElementById('latest-reading-container').innerHTML = `<div style="text-align:center;"><div style="font-size:32px; font-weight:bold; color: ${latestClass.color};">${latest.sys}/${latest.dia}</div><div style="color:#5f6368; font-size: 14px;">mmHg</div><div style="margin-top:10px;"><span class="badge badge-${latest.status}">${latestClass.label}</span></div><div style="font-size: 11px; color: #888; margin-top: 5px;">${Utils.formatDateTime(latest.date, latest.time)}</div></div>`;
+                const d30 = new Date(); d30.setDate(d30.getDate() - 30);
+                const recent = patientReadings.filter(r => new Date(r.date) >= d30);
+                if (recent.length > 0) {
+                    const stats = BPEngine.calculateStats(recent);
+                    document.getElementById('average-reading-container').innerHTML = `<div><div class="stat-label">30-Day Average</div><div class="stat-value">${stats.avgSys}/${stats.avgDia}</div><div class="stat-sub"><span class="min"><i class="fas fa-arrow-down"></i> ${stats.minSys}/${stats.minDia}</span><span class="max"><i class="fas fa-arrow-up"></i> ${stats.maxSys}/${stats.maxDia}</span></div></div>`;
+                    const avgClass = BPEngine.classify(stats.avgSys, stats.avgDia);
+                    document.getElementById('bp-status-container').innerHTML = `<div style="text-align: center;"><div style="font-size: 18px; font-weight: bold; color: ${avgClass.color};">${avgClass.label}</div><div style="font-size: 12px; color: #888; margin-top: 5px;">Risk Level: ${avgClass.risk}</div></div>`;
+                } else {
+                    document.getElementById('average-reading-container').innerHTML = '<div class="empty-state">No 30-day data</div>';
+                    document.getElementById('bp-status-container').innerHTML = '<div class="empty-state">No data</div>';
+                }
+                const days = parseInt(document.getElementById('trend-period').value);
+                const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+                const trendData = patientReadings.filter(r => new Date(r.date) >= cutoff).reverse();
+                if (trendData.length > 0) ChartManager.createTrendChart('bpTrendChart', trendData, AppState.settings.theme === 'dark');
+            }
+        };
+
+        let calDate = new Date();
+        const Calendar = {
+            render() {
+                const cal = document.querySelector('.calendar');
+                const headers = Array.from(document.querySelectorAll('.calendar-header'));
+                cal.innerHTML = '';
+                headers.forEach(h => cal.appendChild(h));
+                const year = calDate.getFullYear(), month = calDate.getMonth();
+                document.getElementById('current-month-label').textContent = new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' });
+                const firstDay = new Date(year, month, 1).getDay(), daysInMonth = new Date(year, month + 1, 0).getDate();
+                for (let i = 0; i < firstDay; i++) { const div = document.createElement('div'); div.className = 'calendar-day other-month'; cal.appendChild(div); }
+                const patientReadings = AppState.readings.filter(r => r.patientId === AppState.currentPatientId);
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const div = document.createElement('div');
+                    div.className = 'calendar-day';
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                    if (dateStr === new Date().toISOString().split('T')[0]) div.classList.add('today');
+                    const dayReadings = patientReadings.filter(r => r.date === dateStr);
+                    let html = `<div style="font-weight:bold; margin-bottom: 4px;">${i}</div>`;
+                    if (dayReadings.length > 0) {
+                        html += `<div style="display:flex; flex-wrap:wrap; gap: 2px;">`;
+                        dayReadings.forEach(r => { const cls = BPEngine.classify(r.sys, r.dia); html += `<div class="day-dot" style="background-color:${cls.color};"></div>`; });
+                        html += `</div>`;
+                        div.onclick = () => { const details = dayReadings.map(r => `${r.time}: ${r.sys}/${r.dia} (${BPEngine.classify(r.sys, r.dia).label})`).join('\n'); alert(`Readings for ${dateStr}:\n\n${details}`); };
+                    }
+                    div.innerHTML = html;
+                    cal.appendChild(div);
+                }
+            },
+            changeMonth(delta) { calDate.setMonth(calDate.getMonth() + delta); Calendar.render(); }
+        };
+
+        const Data = {
+            exportJSON() {
+                const data = { patients: AppState.patients, readings: AppState.readings, exportDate: new Date().toISOString(), version: '3.0' };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `bp_tracker_backup_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                UI.showNotification('Backup downloaded');
+            },
+            importJSON(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (data.patients && Array.isArray(data.patients)) {
+                            AppState.patients = data.patients;
+                            AppState.readings = data.readings || [];
+                            DataStore.save('patients', AppState.patients);
+                            DataStore.save('readings', AppState.readings);
+                            Patient.load();
+                            UI.showNotification('Data restored successfully');
+                            location.reload();
+                        } else { throw new Error('Invalid format'); }
+                    } catch (err) { UI.showNotification('Error restoring backup', 'error'); }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            UI.initTheme();
+            Patient.load();
+            setupEventListeners();
+            const end = new Date();
+            const start = new Date();
+            start.setDate(start.getDate() - 30);
+            document.getElementById('report-end').valueAsDate = end;
+            document.getElementById('report-start').valueAsDate = start;
+            if (AppState.patients.length > 0 && !AppState.currentPatientId) Patient.switch(AppState.patients[0].id);
+            else if (AppState.currentPatientId && AppState.patients.find(p => p.id === AppState.currentPatientId)) Patient.switch(AppState.currentPatientId);
+            else if (AppState.patients.length === 0) document.getElementById('patient-modal').classList.add('open');
+        });
+    </script>
+</body>
+</html>
