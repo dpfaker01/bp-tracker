@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#4285f4">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -52,7 +52,8 @@
             height: 100%;
             width: 100%;
             overflow: hidden;
-            touch-action: manipulation;
+            /* Using pan-x pan-y restricts input to scrolling only and prevents pinch zoom overrides entirely */
+            touch-action: pan-x pan-y;
         }
         
         body {
@@ -174,8 +175,9 @@
         /* ============================================ */
         .add-reading-btn {
             position: fixed !important;
-            bottom: 20px !important;
-            right: 20px !important;
+            /* Added safe area logic so it never gets obscured by system nav bars */
+            bottom: max(20px, env(safe-area-inset-bottom, 20px)) !important;
+            right: max(20px, env(safe-area-inset-right, 20px)) !important;
             width: 60px !important;
             height: 60px !important;
             border-radius: 50% !important;
