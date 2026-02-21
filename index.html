@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- Aggressive viewport settings to block zooming -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0, shrink-to-fit=no">
     <meta name="theme-color" content="#4285f4">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -19,12 +20,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
     <script>
-        // Force native app stability: explicitly disable pinch-to-zoom at the document level
-        document.addEventListener('touchmove', function(event) {
-            if (event.scale !== 1 || event.touches.length > 1) {
-                event.preventDefault();
+        // Force native app stability: explicitly disable pinch-to-zoom & double-tap zoom
+        document.addEventListener('touchstart', function(event) {
+            if (event.touches.length > 1) {
+                event.preventDefault(); // Block multi-touch pinch
             }
         }, { passive: false });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault(); // Block double-tap to zoom
+            }
+            lastTouchEnd = now;
+        }, false);
 
         document.addEventListener('gesturestart', function(event) {
             event.preventDefault();
@@ -59,15 +69,16 @@
             --muted: #9aa0a6;
         }
         
-        /* touch-action: manipulation prevents double-tap-to-zoom */
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
         html, body {
             height: 100%;
             width: 100%;
             overflow: hidden;
-            /* Prevents full page pull-to-refresh bounce effect making it feel native */
-            overscroll-behavior: none; 
+            /* Native app scroll behaviors */
+            overscroll-behavior-y: none; 
+            touch-action: pan-y; /* Restricts to vertical scrolling only, blocks panning/zooming */
+            -webkit-text-size-adjust: 100%;
         }
         
         body {
@@ -135,7 +146,7 @@
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
             padding: 10px;
-            padding-bottom: 80px;
+            padding-bottom: 30px;
         }
         
         /* Cards */
@@ -164,7 +175,7 @@
         .grid-4 { grid-template-columns: 1fr 1fr; }
         
         /* Badges */
-        .badge { padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+        .badge { padding: 4px; border-radius: 6px; font-size: 8px; font-weight: 700; text-transform: uppercase; text-align: center; white-space: nowrap; line-height: 1.1; }
         .badge-normal { background: #e6f4ea; color: #1e8e3e; }
         .badge-high-normal { background: #fef7e0; color: #b06000; }
         .badge-grade1 { background: #ffe0b2; color: #e65100; }
@@ -176,75 +187,28 @@
         [data-theme="dark"] .badge-grade2 { background: rgba(234,67,53,0.2); color: #f28b82; }
         [data-theme="dark"] .badge-low { background: rgba(66,133,244,0.2); color: #8ab4f8; }
         
-        /* Table */
-        .table-wrap { overflow-x: auto; margin: 0 -12px; padding: 0 12px; }
-        .table { width: 100%; border-collapse: collapse; min-width: 400px; }
-        .table th, .table td { padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--border); font-size: 12px; }
-        .table th { background: var(--hover); font-weight: 500; }
-        .action-btns { display: flex; gap: 4px; }
-        .action-btns .btn { padding: 4px 7px; min-width: 26px; }
+        /* Fixed Table for Mobile (No Horizontal Scroll) */
+        .table-wrap { width: 100%; overflow: hidden; margin: 0; padding: 0; }
+        .table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .table th { background: var(--hover); font-weight: 500; color: var(--muted); }
+        .table th, .table td { 
+            padding: 8px 2px; 
+            text-align: center; 
+            border-bottom: 1px solid var(--border); 
+            font-size: 11px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        /* Exact Width Percentages to guarantee everything stays on screen */
+        .table th:nth-child(1), .table td:nth-child(1) { width: 22%; text-align: left; padding-left: 4px; }
+        .table th:nth-child(2), .table td:nth-child(2) { width: 12%; }
+        .table th:nth-child(3), .table td:nth-child(3) { width: 12%; }
+        .table th:nth-child(4), .table td:nth-child(4) { width: 12%; }
+        .table th:nth-child(5), .table td:nth-child(5) { width: 22%; }
+        .table th:nth-child(6), .table td:nth-child(6) { width: 20%; text-align: right; padding-right: 4px; }
         
-        /* ============================================ */
-        /* FIXED ADD BUTTON - ALWAYS VISIBLE ON MOBILE */
-        /* ============================================ */
-        .add-reading-btn {
-            position: fixed !important;
-            /* Replaced max() with safe fallbacks and calc() so it works perfectly on all Android WebViews */
-            bottom: 20px !important;
-            bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
-            right: 20px !important;
-            right: calc(20px + env(safe-area-inset-right, 0px)) !important;
-            width: 60px !important;
-            height: 60px !important;
-            border-radius: 50% !important;
-            background: var(--primary) !important;
-            color: white !important;
-            border: none !important;
-            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.5), 0 2px 6px rgba(0,0,0,0.2) !important;
-            cursor: pointer !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            font-size: 26px !important;
-            z-index: 9999 !important;
-            -webkit-appearance: none !important;
-            appearance: none !important;
-            outline: none !important;
-            transition: transform 0.15s, box-shadow 0.15s !important;
-        }
-        .add-reading-btn:active {
-            transform: scale(0.9) !important;
-            box-shadow: 0 2px 8px rgba(66, 133, 244, 0.4) !important;
-        }
-        
-        /* Alternative: Bottom Bar with Add Button */
-        .bottom-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--card);
-            padding: 10px 16px;
-            display: flex;
-            justify-content: center;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-            z-index: 9999;
-        }
-        .bottom-bar .add-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 3px 10px rgba(66,133,244,0.3);
-        }
-        .bottom-bar .add-btn:active { transform: scale(0.97); }
+        .action-btns { display: flex; justify-content: flex-end; gap: 4px; }
+        .action-btns .btn { padding: 4px 6px; min-width: auto; border-radius: 4px; font-size: 10px; }
         
         /* Modal */
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center; padding: 10px; }
@@ -318,7 +282,7 @@
         
         .notify {
             position: fixed;
-            bottom: 100px;
+            bottom: 30px;
             left: 50%;
             transform: translateX(-50%) translateY(80px);
             background: #323232;
@@ -397,15 +361,25 @@
             <!-- Readings -->
             <div id="readings-tab" class="tab-content">
                 <div class="card">
-                    <div class="card-header">History</div>
+                    <!-- Inline "Add" Button exactly as shown in screenshot -->
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 12px;">
+                        <span style="font-size: 16px; font-weight: 600;">History</span>
+                        <button class="btn btn-primary" id="addReadingBtn" style="font-size: 13px; padding: 7px 16px; font-weight: 600;"><i class="fas fa-plus"></i> Add</button>
+                    </div>
                     <div class="grid grid-2" style="margin-bottom:10px;">
-                        <select id="filterDate" class="form-control" style="padding:6px 8px;font-size:12px;">
-                            <option value="all">All</option>
-                            <option value="today">Today</option>
-                            <option value="week">Week</option>
-                            <option value="month">Month</option>
-                        </select>
-                        <input type="text" id="searchRead" class="form-control" placeholder="Search..." style="padding:6px 8px;font-size:12px;">
+                        <div>
+                            <label class="form-label">Filter</label>
+                            <select id="filterDate" class="form-control" style="padding:6px 8px;font-size:12px;">
+                                <option value="all">All Time</option>
+                                <option value="today">Today</option>
+                                <option value="week">Week</option>
+                                <option value="month">Month</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Search</label>
+                            <input type="text" id="searchRead" class="form-control" placeholder="Notes..." style="padding:6px 8px;font-size:12px;">
+                        </div>
                     </div>
                     <div class="table-wrap">
                         <table class="table">
@@ -413,7 +387,7 @@
                             <tbody id="readTbl"></tbody>
                         </table>
                     </div>
-                    <div class="empty hidden" id="noRead">No readings. Tap the + button to add.</div>
+                    <div class="empty hidden" id="noRead">No readings found.</div>
                 </div>
             </div>
             
@@ -474,13 +448,6 @@
                 </div>
             </div>
         </main>
-        
-        <!-- ============================================ -->
-        <!-- FIXED ADD BUTTON - ALWAYS VISIBLE -->
-        <!-- ============================================ -->
-        <button class="add-reading-btn" id="addReadingBtn" aria-label="Add Reading">
-            <i class="fas fa-plus"></i>
-        </button>
     </div>
     
     <!-- Patient Modal -->
@@ -626,7 +593,7 @@
                 document.getElementById('readTitle').textContent = 'Add Reading';
             }));
             
-            // ADD READING BUTTON - THE MAIN FIX
+            // Inline Add Reading Button
             document.getElementById('addReadingBtn').addEventListener('click', function(e) {
                 e.preventDefault();
                 if (!curPatient) {
@@ -818,6 +785,7 @@
                 document.getElementById('noRead').classList.add('hidden');
                 data.forEach(r => {
                     const tr = document.createElement('tr');
+                    // Rendered action buttons as secondary(outline) for edit and danger(solid red) for delete
                     tr.innerHTML = `<td>${r.date}<br><small style="color:var(--muted)">${r.time}</small></td><td style="color:#ea4335;font-weight:600">${r.sys}</td><td style="color:#4285f4;font-weight:600">${r.dia}</td><td>${r.pulse || '-'}</td><td><span class="badge badge-${r.status}">${statusLabel(r.status)}</span></td><td><div class="action-btns"><button class="btn btn-secondary btn-sm" onclick="editReading('${r.id}')"><i class="fas fa-edit"></i></button><button class="btn btn-danger btn-sm" onclick="deleteReading('${r.id}')"><i class="fas fa-trash"></i></button></div></td>`;
                     tbody.appendChild(tr);
                 });
