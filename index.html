@@ -18,6 +18,19 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
+    <script>
+        // Force native app stability: explicitly disable pinch-to-zoom at the document level
+        document.addEventListener('touchmove', function(event) {
+            if (event.scale !== 1 || event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+
+        document.addEventListener('gesturestart', function(event) {
+            event.preventDefault();
+        });
+    </script>
+
     <style>
         :root {
             --primary: #4285f4;
@@ -46,14 +59,15 @@
             --muted: #9aa0a6;
         }
         
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        /* touch-action: manipulation prevents double-tap-to-zoom */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         
         html, body {
             height: 100%;
             width: 100%;
             overflow: hidden;
-            /* Using pan-x pan-y restricts input to scrolling only and prevents pinch zoom overrides entirely */
-            touch-action: pan-x pan-y;
+            /* Prevents full page pull-to-refresh bounce effect making it feel native */
+            overscroll-behavior: none; 
         }
         
         body {
@@ -175,9 +189,11 @@
         /* ============================================ */
         .add-reading-btn {
             position: fixed !important;
-            /* Added safe area logic so it never gets obscured by system nav bars */
-            bottom: max(20px, env(safe-area-inset-bottom, 20px)) !important;
-            right: max(20px, env(safe-area-inset-right, 20px)) !important;
+            /* Replaced max() with safe fallbacks and calc() so it works perfectly on all Android WebViews */
+            bottom: 20px !important;
+            bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+            right: 20px !important;
+            right: calc(20px + env(safe-area-inset-right, 0px)) !important;
             width: 60px !important;
             height: 60px !important;
             border-radius: 50% !important;
