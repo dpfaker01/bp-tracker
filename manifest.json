@@ -1,7 +1,7 @@
 {
-  "name": "BP Tracker (ISH Standard)",
+  "name": "BP Tracker - Blood Pressure Monitor",
   "short_name": "BP Tracker",
-  "description": "Offline-capable blood pressure monitoring app with ISH standard classification",
+  "description": "Offline-capable blood pressure monitoring app with ISH 2020 standard classification",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -58,38 +58,41 @@
       "purpose": "maskable any"
     }
   ],
-  "categories": ["health", "medical", "lifestyle"],
-  "screenshots": [
-    {
-      "src": "screenshots/dashboard.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "screenshots/readings.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
+  "categories": [
+    "health",
+    "medical",
+    "lifestyle"
   ],
   "shortcuts": [
     {
       "name": "Add Reading",
-      "short_name": "Add",
+      "short_name": "Add Reading",
       "description": "Quickly add a new BP reading",
       "url": "/?action=add-reading",
-      "icons": [{ "src": "icons/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     },
     {
       "name": "View Dashboard",
       "short_name": "Dashboard",
       "description": "View your BP dashboard",
       "url": "/?tab=dashboard",
-      "icons": [{ "src": "icons/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     }
   ],
   "related_applications": [],
   "prefer_related_applications": false,
-  "features": ["offline", "background-sync"]
+  "features": [
+    "offline",
+    "background-sync"
+  ]
 }
