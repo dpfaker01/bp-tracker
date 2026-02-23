@@ -2,437 +2,471 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- CRITICAL: Prevents zooming and ensures native app feel -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <!-- LINK TO MANIFEST -->
-    <link rel="manifest" href="./manifest.json">
-    <!-- THEME COLOR -->
-    <meta name="theme-color" content="#4285f4">
-    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Blood Pressure Monitor (ISH Standard)</title>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <!-- jsPDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* CSS STYLES */
         :root {
-            --primary-color: #4285f4;
-            --secondary-color: #34a853;
-            --danger-color: #d32f2f;
-            --warning-color: #fbbc05;
-            --orange-color: #f57c00;
-            --dark-color: #202124;
-            --light-color: #f8f9fa;
-            --border-color: #dadce0;
-            --bg-color: #f5f5f5;
-            --card-bg: white;
-            --text-color: var(--dark-color);
-            --input-bg: white;
-            --modal-bg: white;
-            --header-bg: white;
-            --table-hover: #f8f9fa;
-            --empty-state-color: #5f6368;
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --success: #22c55e;
         }
-        [data-theme="dark"] {
-            --dark-color: #e8eaed;
-            --light-color: #202124;
-            --bg-color: #121212;
-            --card-bg: #1f1f1f;
-            --text-color: #e8eaed;
-            --input-bg: #2d2d2d;
-            --modal-bg: #2d2d2d;
-            --header-bg: #1f1f1f;
-            --border-color: #3c4043;
-            --table-hover: #2d2d2d;
-            --empty-state-color: #9aa0a6;
+
+        /* Dark Mode Support (Like CashTrail) */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0f172a;
+                --card-bg: #1e293b;
+                --text: #f1f5f9;
+                --text-light: #94a3b8;
+                --border: #334155;
+            }
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html, body {
-            font-family: 'Roboto', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.6;
-            width: 100%; height: 100%;
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden; /* Prevent body scroll, handle inside app-container */
+            display: flex;
+            flex-direction: column;
         }
-        #app-screen { width: 100vw; min-height: 100vh; position: relative; padding-bottom: 40px; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 10px; }
+
+        /* --- Header (Fixed) --- */
         header {
-            background-color: var(--header-bg); box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 15px 0; position: sticky; top: 0; z-index: 100;
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            z-index: 10;
         }
-        .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 10px; }
-        .logo { display: flex; align-items: center; font-size: 18px; font-weight: 500; color: var(--primary-color); }
-        .logo i { margin-right: 8px; font-size: 22px; }
-        .user-info { display: flex; align-items: center; }
-        .user-avatar {
-            width: 35px; height: 35px; border-radius: 50%; background-color: var(--primary-color); color: white;
-            display: flex; align-items: center; justify-content: center; margin-right: 8px; font-weight: 500; font-size: 14px;
+
+        .app-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .tabs { display: flex; overflow-x: auto; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; padding-bottom: 5px; }
-        .tab { padding: 12px 16px; cursor: pointer; font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; color: var(--text-color); }
-        .tab.active { color: var(--primary-color); border-bottom: 2px solid var(--primary-color); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .card { background-color: var(--card-bg); border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 15px; margin-bottom: 15px; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; color: var(--text-color); }
-        .btn { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; gap: 8px; }
-        .btn-primary { background-color: var(--primary-color); color: white; }
-        .btn-secondary { background-color: var(--input-bg); color: var(--primary-color); border: 1px solid var(--primary-color); }
-        .btn-danger { background-color: var(--danger-color); color: white; }
-        .btn-success { background-color: var(--secondary-color); color: white; }
-        .btn-warning { background-color: var(--warning-color); color: white; }
-        .stat-label { font-size: 12px; color: #888; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-value { font-size: 24px; font-weight: bold; color: var(--text-color); }
-        .stat-sub { font-size: 12px; margin-top: 5px; display: flex; justify-content: space-between; }
-        .stat-sub .min { color: var(--secondary-color); }
-        .stat-sub .max { color: var(--danger-color); }
+
+        .user-controls {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-top: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .patient-select {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        /* --- Scrollable Content Area --- */
+        .app-container {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            padding: 15px;
+            padding-bottom: 80px; /* Space for bottom actions if needed */
+        }
+
+        /* --- Stats Card (Like Cash on Hand) --- */
+        .stats-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .stats-label { color: var(--text-light); font-size: 0.9rem; margin-bottom: 5px; }
+        .stats-value { font-size: 2rem; font-weight: 800; color: var(--primary); }
+        .stats-sub { font-size: 0.8rem; color: var(--text-light); margin-top: 5px; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 10px;
+            background: #e0e7ff;
+            color: var(--primary);
+        }
+
+        /* --- Action Buttons (Like Record Withdrawal/Expense) --- */
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn-action {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.1s;
+        }
+
+        .btn-action:active { transform: scale(0.98); background: var(--bg); }
+        .btn-icon { font-size: 1.5rem; margin-bottom: 5px; }
+
+        /* --- Sections --- */
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 20px 0 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* --- Table (Like Transaction History) --- */
+        .table-container {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { background: var(--bg); text-align: left; padding: 12px; color: var(--text-light); font-weight: 600; }
+        td { padding: 12px; border-top: 1px solid var(--border); }
+        tr:last-child td { border-bottom: none; }
+        
+        .status-normal { color: var(--success); }
+        .status-high { color: var(--danger); }
+
+        /* --- Modals (Like CashTrail Record/Adjust) --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--card-bg);
+            width: 90%;
+            max-width: 400px;
+            border-radius: 16px;
+            padding: 20px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-light);
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
         .form-group { margin-bottom: 15px; }
-        .form-label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; }
-        .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--input-bg); color: var(--text-color); font-size: 16px; }
-        .grid { display: grid; grid-gap: 15px; }
-        .grid-2 { grid-template-columns: 1fr; }
-        .grid-3 { grid-template-columns: 1fr; }
-        @media (min-width: 768px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } .grid-3 { grid-template-columns: repeat(3, 1fr); } }
-        .table-responsive { width: 100%; overflow-x: auto; }
-        .table { width: 100%; border-collapse: collapse; min-width: 600px; }
-        .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 14px; }
-        .badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
-        .badge-normal { background-color: #e6f4ea; color: #1e8e3e; }
-        .badge-high-normal { background-color: #fef7e0; color: #b06000; }
-        .badge-grade1 { background-color: #ffe0b2; color: #e65100; }
-        .badge-grade2 { background-color: #fad2cf; color: #c62828; }
-        .badge-low { background-color: #e8f0fe; color: #1967d2; }
-        [data-theme="dark"] .badge-normal { background-color: rgba(52, 168, 83, 0.2); color: #81c995; }
-        [data-theme="dark"] .badge-high-normal { background-color: rgba(251, 188, 5, 0.2); color: #fdd663; }
-        [data-theme="dark"] .badge-grade1 { background-color: rgba(245, 124, 0, 0.2); color: #ffb74d; }
-        [data-theme="dark"] .badge-grade2 { background-color: rgba(234, 67, 53, 0.2); color: #f28b82; }
-        [data-theme="dark"] .badge-low { background-color: rgba(25, 103, 210, 0.2); color: #8ab4f8; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-        .modal.open { display: flex; }
-        .modal-content { background-color: var(--modal-bg); border-radius: 8px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; }
-        .modal-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; }
-        .modal-body { padding: 15px; overflow-y: auto; }
-        .modal-footer { padding: 15px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; }
-        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background-color: var(--border-color); border: 1px solid var(--border-color); }
-        .calendar-header { background-color: var(--table-hover); padding: 10px; text-align: center; font-weight: bold; font-size: 12px; }
-        .calendar-day { background-color: var(--card-bg); min-height: 80px; padding: 5px; cursor: pointer; position: relative; }
-        .calendar-day.today { background-color: rgba(66, 133, 244, 0.1); }
-        .calendar-day.other-month { background-color: var(--table-hover); opacity: 0.5; }
-        .day-dot { height: 6px; width: 6px; background-color: var(--secondary-color); border-radius: 50%; display: inline-block; margin: 1px; }
-        .hidden { display: none !important; }
-        .empty-state { text-align: center; padding: 20px; color: var(--empty-state-color); }
-        .theme-toggle-btn { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); padding: 8px 12px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-        .chart-wrapper { position: relative; height: 250px; width: 100%; }
-        .notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background-color: #323232; color: white; padding: 12px 24px; border-radius: 4px; z-index: 2000; transition: transform 0.3s; box-shadow: 0 3px 6px rgba(0,0,0,0.16); display: flex; align-items: center; gap: 10px; }
-        .notification.show { transform: translateX(-50%) translateY(0); }
+        .form-label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-light); }
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        /* --- Settings/Footer --- */
+        .settings-section {
+            margin-top: 30px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid var(--border);
+        }
+        .settings-item {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .settings-item:last-child { border-bottom: none; }
+
     </style>
 </head>
 <body>
-    <div id="app-screen">
-        <header>
-            <div class="header-content">
-                <div class="logo">
-                    <i class="fas fa-heartbeat"></i>
-                    <span>BP Tracker (ISH)</span>
-                </div>
-                <div class="user-info">
-                    <div class="user-avatar" id="user-avatar">U</div>
-                    <div class="user-name" id="user-name">User</div>
-                    <button id="theme-toggle-btn" class="theme-toggle-btn"><i class="fas fa-sun"></i></button>
-                </div>
+
+    <!-- Header (Fixed) -->
+    <header>
+        <div class="app-title">
+            <span>BP Tracker (ISH) 🩸</span>
+            <span>⚙️</span>
+        </div>
+        <div class="user-controls">
+            <span>👤 User</span>
+            <select class="patient-select">
+                <option>Select a patient</option>
+                <option>John Doe</option>
+                <option>Jane Smith</option>
+            </select>
+            <span style="cursor:pointer;">+ Add Patient</span>
+        </div>
+    </header>
+
+    <!-- Scrollable Content -->
+    <div class="app-container">
+        
+        <!-- Dashboard Stats (Like Cash on Hand) -->
+        <div class="stats-card">
+            <div class="stats-label">Latest Reading</div>
+            <div class="stats-value">120/80</div>
+            <div class="stats-sub">Pulse: 72 bpm • Today</div>
+            <div class="status-badge">Status: Normal (ISH)</div>
+        </div>
+
+        <!-- Quick Actions (Like Record Withdrawal/Expense) -->
+        <div class="action-grid">
+            <div class="btn-action" onclick="openModal('modalReading')">
+                <span class="btn-icon">🩸</span>
+                <span>Add Reading</span>
             </div>
-        </header>
-        <div class="container">
-            <div class="card">
-                <div class="grid grid-2" style="align-items: end;">
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Current Patient</label>
-                        <select id="patient-select" class="form-control"><option value="">Select a patient</option></select>
-                    </div>
-                    <button id="add-patient-btn" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add Patient</button>
-                </div>
-            </div>
-            <div class="tabs">
-                <div class="tab active" data-tab="dashboard">Dashboard</div>
-                <div class="tab" data-tab="readings">Readings</div>
-                <div class="tab" data-tab="calendar">Calendar</div>
-                <div class="tab" data-tab="reports">Reports</div>
-                <div class="tab" data-tab="settings">Settings</div>
-            </div>
-            <div id="dashboard-tab" class="tab-content active">
-                <div class="grid grid-3">
-                    <div class="card"><div class="card-header">Latest Reading</div><div id="latest-reading-container"></div></div>
-                    <div class="card"><div class="card-header">Stats (Last 30 Days)</div><div id="average-reading-container"></div></div>
-                    <div class="card"><div class="card-header">Status (ISH)</div><div id="bp-status-container"></div></div>
-                </div>
-                <div class="card">
-                    <div class="card-header"><span>BP Trend</span><select id="trend-period" class="form-control" style="width: auto; padding: 5px;"><option value="7">7 Days</option><option value="30" selected>30 Days</option><option value="90">90 Days</option></select></div>
-                    <div class="chart-wrapper"><canvas id="bpTrendChart"></canvas></div>
-                </div>
-            </div>
-            <div id="readings-tab" class="tab-content">
-                <div class="card">
-                    <div class="card-header"><span>History</span><button id="add-reading-btn" class="btn btn-primary"><i class="fas fa-plus"></i> Add</button></div>
-                    <div class="grid grid-2">
-                        <div class="form-group"><label class="form-label">Filter</label><select id="date-filter" class="form-control"><option value="all">All Time</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option></select></div>
-                        <div class="form-group"><label class="form-label">Search</label><input type="text" id="search-readings" class="form-control" placeholder="Search..."></div>
-                    </div>
-                    <div class="table-responsive"><table class="table"><thead><tr><th>Date</th><th>Sys</th><th>Dia</th><th>Pulse</th><th>Status</th><th>Action</th></tr></thead><tbody id="readings-table-body"></tbody></table></div>
-                    <div id="no-readings-msg" class="empty-state hidden">No readings found.</div>
-                </div>
-            </div>
-            <div id="calendar-tab" class="tab-content">
-                <div class="card">
-                    <div class="card-header"><button id="prev-month" class="btn btn-secondary"><i class="fas fa-chevron-left"></i></button><span id="current-month-label" style="flex-grow:1; text-align:center; font-weight:bold;"></span><button id="next-month" class="btn btn-secondary"><i class="fas fa-chevron-right"></i></button></div>
-                    <div class="calendar"><div class="calendar-header">Sun</div><div class="calendar-header">Mon</div><div class="calendar-header">Tue</div><div class="calendar-header">Wed</div><div class="calendar-header">Thu</div><div class="calendar-header">Fri</div><div class="calendar-header">Sat</div></div>
-                </div>
-            </div>
-            <div id="reports-tab" class="tab-content">
-                <div class="card">
-                    <div class="card-header">Export Data</div>
-                    <div class="grid grid-2"><div class="form-group"><label class="form-label">Start</label><input type="date" id="report-start" class="form-control"></div><div class="form-group"><label class="form-label">End</label><input type="date" id="report-end" class="form-control"></div></div>
-                    <button id="generate-pdf-btn" class="btn btn-danger"><i class="fas fa-file-pdf"></i> Download PDF Report</button>
-                </div>
-            </div>
-            <div id="settings-tab" class="tab-content">
-                <div class="card">
-                    <div class="card-header">Data Management</div>
-                    <div class="form-group">
-                        <div class="grid grid-2"><button id="export-json-btn" class="btn btn-success"><i class="fas fa-download"></i> Backup Data</button><button id="import-json-btn" class="btn btn-warning"><i class="fas fa-upload"></i> Restore Data</button></div>
-                        <input type="file" id="import-file-input" accept=".json" style="display:none;">
-                    </div>
-                </div>
-                <div class="card"><div class="card-header">About</div><p>Blood Pressure Monitor v2.4 (Offline Capable)</p></div>
+            <div class="btn-action" onclick="openModal('modalPatient')">
+                <span class="btn-icon">👤</span>
+                <span>Add Patient</span>
             </div>
         </div>
+
+        <!-- Analytics/Trend (Simplified) -->
+        <div class="section-title">
+            <span>BP Trend 📈</span>
+            <select class="patient-select" style="width:auto; padding: 2px 5px;">
+                <option>7 Days</option>
+                <option>30 Days</option>
+            </select>
+        </div>
+        <div class="stats-card" style="padding: 10px; text-align: left;">
+            <div style="height: 100px; display: flex; align-items: flex-end; justify-content: space-around; border-bottom: 1px solid var(--border);">
+                <!-- Placeholder Bars -->
+                <div style="width: 10%; height: 40%; background: var(--primary); border-radius: 4px 4px 0 0;"></div>
+                <div style="width: 10%; height: 60%; background: var(--primary); border-radius: 4px 4px 0 0;"></div>
+                <div style="width: 10%; height: 50%; background: var(--primary); border-radius: 4px 4px 0 0;"></div>
+                <div style="width: 10%; height: 80%; background: var(--danger); border-radius: 4px 4px 0 0;"></div>
+                <div style="width: 10%; height: 45%; background: var(--primary); border-radius: 4px 4px 0 0;"></div>
+            </div>
+            <div class="stats-sub" style="text-align: center; margin-top: 5px;">Last 5 Readings</div>
+        </div>
+
+        <!-- History Table (Like Transaction History) -->
+        <div class="section-title">
+            <span>History 📋</span>
+            <span style="font-size: 0.8rem; color: var(--primary);">View All</span>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Sys/Dia</th>
+                        <th>Pulse</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Oct 24</td>
+                        <td>120/80</td>
+                        <td>72</td>
+                        <td><button class="btn-danger">Edit</button></td>
+                    </tr>
+                    <tr>
+                        <td>Oct 23</td>
+                        <td>130/85</td>
+                        <td>75</td>
+                        <td><button class="btn-danger">Edit</button></td>
+                    </tr>
+                    <tr>
+                        <td>Oct 22</td>
+                        <td>118/78</td>
+                        <td>70</td>
+                        <td><button class="btn-danger">Edit</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Settings & Data (Like CashTrail Settings) -->
+        <div class="settings-section">
+            <div class="section-title" style="margin-top:0;">Settings ⚙️</div>
+            <div class="settings-item">
+                <span>📥 Export Data (JSON)</span>
+                <span>➡️</span>
+            </div>
+            <div class="settings-item">
+                <span>📤 Import Data</span>
+                <span>➡️</span>
+            </div>
+            <div class="settings-item">
+                <span>🗑️ Clear All Data</span>
+                <span style="color: var(--danger);">➡️</span>
+            </div>
+            <div class="settings-item">
+                <span>About v2.4</span>
+                <span>ℹ️</span>
+            </div>
+        </div>
+
+        <div style="text-align: center; color: var(--text-light); font-size: 0.8rem; margin-top: 20px; margin-bottom: 20px;">
+            Built with ❤️ for precise health tracking
+        </div>
     </div>
-    <div id="patient-modal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Add Patient</h3><button class="close-modal">&times;</button></div><div class="modal-body"><div class="form-group"><label class="form-label">Name</label><input type="text" id="p-name" class="form-control"></div><div class="grid grid-2"><div class="form-group"><label class="form-label">Age</label><input type="number" id="p-age" class="form-control"></div><div class="form-group"><label class="form-label">Gender</label><select id="p-gender" class="form-control"><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div></div></div><div class="modal-footer"><button class="btn btn-secondary close-modal">Cancel</button><button id="save-patient" class="btn btn-primary">Save</button></div></div></div>
-    <div id="reading-modal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Add Reading</h3><button class="close-modal">&times;</button></div><div class="modal-body"><div class="grid grid-2"><div class="form-group"><label class="form-label">Date</label><input type="date" id="r-date" class="form-control"></div><div class="form-group"><label class="form-label">Time</label><input type="time" id="r-time" class="form-control"></div></div><div class="grid grid-2"><div class="form-group"><label class="form-label">Systolic</label><input type="number" id="r-sys" class="form-control" placeholder="120"></div><div class="form-group"><label class="form-label">Diastolic</label><input type="number" id="r-dia" class="form-control" placeholder="80"></div></div><div class="grid grid-2"><div class="form-group"><label class="form-label">Pulse</label><input type="number" id="r-pulse" class="form-control" placeholder="70"></div><div class="form-group"><label class="form-label">Weight</label><input type="number" id="r-weight" class="form-control"></div></div><div class="form-group"><label class="form-label">Notes</label><textarea id="r-notes" class="form-control" rows="3"></textarea></div></div><div class="modal-footer"><button class="btn btn-secondary close-modal">Cancel</button><button id="save-reading" class="btn btn-primary">Save</button></div></div></div>
-    <canvas id="pdfChartCanvas" width="1000" height="500" style="display:none;"></canvas>
-    <div id="notification" class="notification"><i class="fas fa-info-circle"></i><span id="notification-text">Message</span></div>
+
+    <!-- Modal: Add Reading -->
+    <div id="modalReading" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span>🩸 Add Reading</span>
+                <button class="close-modal" onclick="closeModal('modalReading')">×</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date & Time</label>
+                <input type="datetime-local" class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Systolic (Sys)</label>
+                <input type="number" class="form-input" placeholder="120">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Diastolic (Dia)</label>
+                <input type="number" class="form-input" placeholder="80">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Pulse</label>
+                <input type="number" class="form-input" placeholder="72">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Weight (Optional)</label>
+                <input type="number" class="form-input" placeholder="kg">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Notes</label>
+                <input type="text" class="form-input" placeholder="After exercise...">
+            </div>
+            <button class="btn-primary">Save Reading</button>
+        </div>
+    </div>
+
+    <!-- Modal: Add Patient -->
+    <div id="modalPatient" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span>👤 Add Patient</span>
+                <button class="close-modal" onclick="closeModal('modalPatient')">×</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-input" placeholder="Full Name">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Age</label>
+                <input type="number" class="form-input" placeholder="Age">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Gender</label>
+                <select class="form-select">
+                    <option>Male</option>
+                    <option>Female</option>
+                    <option>Other</option>
+                </select>
+            </div>
+            <button class="btn-primary">Save Patient</button>
+        </div>
+    </div>
 
     <script>
-        // PWA REGISTRATION
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker Registered'))
-                    .catch(err => console.log('Service Worker Failed', err));
-            });
+        // Simple Modal Logic to mimic CashTrail interactions
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
         }
 
-        // DB & LOGIC
-        function safeLoad(key) { try { const d = JSON.parse(localStorage.getItem(key)); return Array.isArray(d) ? d : []; } catch(e) { return []; } }
-        function safeLoadObj(key, def) { try { const d = JSON.parse(localStorage.getItem(key)); return d && typeof d === 'object' && !Array.isArray(d) ? d : def; } catch(e) { return def; } }
-        const db = { patients: safeLoad('patients'), readings: safeLoad('readings'), settings: safeLoadObj('settings', { theme: 'light' }) };
-        let currentPatientId = localStorage.getItem('currentPatientId') || null;
-        let chartInstance = null;
-        function saveDB() { localStorage.setItem('patients', JSON.stringify(db.patients)); localStorage.setItem('readings', JSON.stringify(db.readings)); localStorage.setItem('settings', JSON.stringify(db.settings)); }
-        const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
-
-        document.addEventListener('DOMContentLoaded', () => {
-            initTheme(); loadPatients(); setupEventListeners();
-            const now = new Date();
-            document.getElementById('r-date').valueAsDate = now;
-            document.getElementById('r-time').value = now.toTimeString().substr(0,5);
-            document.getElementById('report-end').valueAsDate = now;
-            const lastMonth = new Date(); lastMonth.setMonth(now.getMonth() - 1);
-            document.getElementById('report-start').valueAsDate = lastMonth;
-            if(db.patients.length > 0 && !currentPatientId) switchPatient(db.patients[0].id);
-            else if (currentPatientId && db.patients.find(p => p.id === currentPatientId)) switchPatient(currentPatientId);
-            else document.getElementById('patient-modal').classList.add('open');
-        });
-
-        function setupEventListeners() {
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.addEventListener('click', () => {
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    tab.classList.add('active');
-                    document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
-                    if(tab.dataset.tab === 'calendar') renderCalendar();
-                    if(tab.dataset.tab === 'dashboard') updateDashboard();
-                });
-            });
-            document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', (e) => e.target.closest('.modal').classList.remove('open')));
-            document.getElementById('add-patient-btn').addEventListener('click', () => { document.getElementById('p-name').value = ''; document.getElementById('patient-modal').classList.add('open'); });
-            document.getElementById('add-reading-btn').addEventListener('click', () => { if(!currentPatientId) return showNotification('Select patient', 'error'); document.getElementById('reading-modal').classList.add('open'); });
-            document.getElementById('save-patient').addEventListener('click', savePatient);
-            document.getElementById('save-reading').addEventListener('click', saveReading);
-            document.getElementById('date-filter').addEventListener('change', renderReadingsTable);
-            document.getElementById('search-readings').addEventListener('input', renderReadingsTable);
-            document.getElementById('trend-period').addEventListener('change', updateDashboard);
-            document.getElementById('prev-month').addEventListener('click', () => changeMonth(-1));
-            document.getElementById('next-month').addEventListener('click', () => changeMonth(1));
-            document.getElementById('generate-pdf-btn').addEventListener('click', generatePDF);
-            document.getElementById('export-json-btn').addEventListener('click', exportJSON);
-            document.getElementById('import-json-btn').addEventListener('click', () => document.getElementById('import-file-input').click());
-            document.getElementById('import-file-input').addEventListener('change', importJSON);
-            document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
         }
 
-        function initTheme() { document.documentElement.setAttribute('data-theme', db.settings.theme); const icon = document.querySelector('#theme-toggle-btn i'); icon.className = db.settings.theme === 'light' ? 'fas fa-moon' : 'fas fa-sun'; updateDashboard(); }
-        function toggleTheme() { db.settings.theme = db.settings.theme === 'light' ? 'dark' : 'light'; saveDB(); initTheme(); }
-        
-        function loadPatients() {
-            const select = document.getElementById('patient-select'); select.innerHTML = '<option value="">Select a patient</option>';
-            db.patients.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; select.appendChild(o); });
-            select.addEventListener('change', (e) => switchPatient(e.target.value));
-        }
-        function savePatient() {
-            const name = document.getElementById('p-name').value;
-            if(!name) return showNotification('Name required', 'error');
-            const p = { id: generateId(), name, age: document.getElementById('p-age').value, gender: document.getElementById('p-gender').value };
-            db.patients.push(p); saveDB(); loadPatients(); switchPatient(p.id);
-            document.getElementById('patient-modal').classList.remove('open'); showNotification('Patient added');
-        }
-        function switchPatient(id) {
-            currentPatientId = id; localStorage.setItem('currentPatientId', id); document.getElementById('patient-select').value = id;
-            const p = db.patients.find(x => x.id === id);
-            if(p) { document.getElementById('user-name').textContent = p.name; document.getElementById('user-avatar').textContent = p.name.charAt(0).toUpperCase(); updateDashboard(); renderReadingsTable(); }
-        }
-        function saveReading() {
-            if(!currentPatientId) return;
-            const r = {
-                id: generateId(), patientId: currentPatientId,
-                date: document.getElementById('r-date').value, time: document.getElementById('r-time').value,
-                sys: parseInt(document.getElementById('r-sys').value), dia: parseInt(document.getElementById('r-dia').value),
-                pulse: parseInt(document.getElementById('r-pulse').value), weight: document.getElementById('r-weight').value,
-                notes: document.getElementById('r-notes').value, timestamp: new Date().getTime()
-            };
-            if(!r.date || !r.sys || !r.dia) return showNotification('Fill required fields', 'error');
-            r.status = getBPStatus(r.sys, r.dia);
-            db.readings.push(r); saveDB(); document.getElementById('reading-modal').classList.remove('open');
-            document.getElementById('r-sys').value=''; document.getElementById('r-dia').value=''; document.getElementById('r-pulse').value='';
-            updateDashboard(); renderReadingsTable(); showNotification('Reading saved');
-        }
-        function getBPStatus(s, d) { if(s>=160||d>=100)return 'grade2'; if(s>=140||d>=90)return 'grade1'; if(s>=130||d>=85)return 'high-normal'; if(s<90&&d<60)return 'low'; return 'normal'; }
-        function getStatusLabel(s) { switch(s){ case 'grade2':return 'Grade 2 HTN'; case 'grade1':return 'Grade 1 HTN'; case 'high-normal':return 'High-Normal'; case 'low':return 'Low'; default:return 'Normal'; } }
-        function deleteReading(id) { if(!confirm('Delete?')) return; db.readings = db.readings.filter(r => r.id !== id); saveDB(); updateDashboard(); renderReadingsTable(); }
-        
-        function renderReadingsTable() {
-            const tbody = document.getElementById('readings-table-body'); tbody.innerHTML = '';
-            if (!Array.isArray(db.readings)) db.readings = [];
-            let f = db.readings.filter(r => r.patientId === currentPatientId);
-            const ft = document.getElementById('date-filter').value;
-            const st = document.getElementById('search-readings').value.toLowerCase();
-            const today = new Date().toISOString().split('T')[0];
-            if(ft === 'today') f = f.filter(r => r.date === today);
-            if(ft === 'week') { const d = new Date(); d.setDate(d.getDate()-7); f = f.filter(r => new Date(r.date) >= d); }
-            if(ft === 'month') { const d = new Date(); d.setMonth(d.getMonth()-1); f = f.filter(r => new Date(r.date) >= d); }
-            if(st) f = f.filter(r => r.notes && r.notes.toLowerCase().includes(st));
-            f.sort((a,b) => new Date(b.date+'T'+b.time) - new Date(a.date+'T'+a.time));
-            if(f.length===0) document.getElementById('no-readings-msg').classList.remove('hidden');
-            else {
-                document.getElementById('no-readings-msg').classList.add('hidden');
-                f.forEach(r => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${r.date}<br><small>${r.time}</small></td><td style="color:var(--danger-color)">${r.sys}</td><td style="color:var(--primary-color)">${r.dia}</td><td>${r.pulse||'-'}</td><td><span class="badge badge-${r.status}">${getStatusLabel(r.status)}</span></td><td><button class="btn btn-danger" style="padding:4px 8px;" onclick="deleteReading('${r.id}')"><i class="fas fa-trash"></i></button></td>`;
-                    tbody.appendChild(tr);
-                });
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                event.target.classList.remove('active');
             }
         }
-        function calculateStats(reads) {
-            const s = reads.map(r=>r.sys), d = reads.map(r=>r.dia), p = reads.map(r=>r.pulse||0);
-            return {
-                minSys:Math.min(...s), maxSys:Math.max(...s), avgSys:Math.round(s.reduce((a,b)=>a+b)/s.length),
-                minDia:Math.min(...d), maxDia:Math.max(...d), avgDia:Math.round(d.reduce((a,b)=>a+b)/d.length),
-                avgPulse:Math.round(p.reduce((a,b)=>a+b)/p.length)
-            };
-        }
-        function updateDashboard() {
-            if (!Array.isArray(db.readings)) db.readings = [];
-            const pr = db.readings.filter(r => r.patientId === currentPatientId);
-            if(pr.length > 0) {
-                pr.sort((a,b) => new Date(b.date+'T'+b.time) - new Date(a.date+'T'+a.time));
-                const l = pr[0];
-                document.getElementById('latest-reading-container').innerHTML = `<div style="text-align:center;"><div style="font-size:32px; font-weight:bold;">${l.sys}/${l.dia}</div><div style="color:#5f6368;">mmHg</div><div style="margin-top:5px;"><span class="badge badge-${l.status}">${getStatusLabel(l.status)}</span></div></div>`;
-                const d30 = new Date(); d30.setDate(d30.getDate()-30);
-                const rec = pr.filter(r => new Date(r.date) >= d30);
-                if(rec.length > 0) {
-                    const s = calculateStats(rec);
-                    document.getElementById('average-reading-container').innerHTML = `<div><div class="stat-label">Avg</div><div class="stat-value">${s.avgSys}/${s.avgDia}</div><div class="stat-sub"><span class="min"><i class="fas fa-arrow-down"></i> ${s.minSys}/${s.minDia}</span><span class="max"><i class="fas fa-arrow-up"></i> ${s.maxSys}/${s.maxDia}</span></div></div>`;
-                    let msg = "Normal"; const st = getBPStatus(s.avgSys, s.avgDia);
-                    if(st==='high-normal')msg="High-Normal"; if(st==='grade1')msg="Grade 1 HTN"; if(st==='grade2')msg="Grade 2 HTN"; if(st==='low')msg="Low BP";
-                    document.getElementById('bp-status-container').innerHTML = `<div style="font-size:18px; font-weight:bold;">${msg}</div>`;
-                } else document.getElementById('average-reading-container').innerHTML = '<div class="empty-state">No 30-day data</div>';
-            } else {
-                document.getElementById('latest-reading-container').innerHTML = '<div class="empty-state">No readings</div>';
-                document.getElementById('average-reading-container').innerHTML = '<div class="empty-state">No data</div>';
-                document.getElementById('bp-status-container').innerHTML = '<div class="empty-state">No data</div>';
-            }
-            updateChart(pr);
-        }
-        function updateChart(reads) {
-            const ctx = document.getElementById('bpTrendChart').getContext('2d');
-            const days = parseInt(document.getElementById('trend-period').value);
-            const cut = new Date(); cut.setDate(cut.getDate()-days);
-            const data = reads.filter(r => new Date(r.date) >= cut).sort((a,b) => new Date(a.date) - new Date(b.date));
-            if(chartInstance) chartInstance.destroy();
-            if(data.length === 0) { ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height); return; }
-            const isDark = db.settings.theme === 'dark';
-            const tc = isDark ? '#e8eaed' : '#5f6368';
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: { labels: data.map(r=>r.date), datasets: [{label:'Sys',data:data.map(r=>r.sys),borderColor:'#ea4335',tension:0.3},{label:'Dia',data:data.map(r=>r.dia),borderColor:'#4285f4',tension:0.3}] },
-                options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:tc}}}, scales:{y:{ticks:{color:tc}},x:{ticks:{color:tc, maxTicksLimit:7},grid:{display:false}}} }
-            });
-        }
-        let calDate = new Date();
-        function renderCalendar() {
-            const cd = document.querySelector('.calendar');
-            const h = Array.from(document.querySelectorAll('.calendar-header')); cd.innerHTML = ''; h.forEach(x => cd.appendChild(x));
-            const y = calDate.getFullYear(), m = calDate.getMonth();
-            document.getElementById('current-month-label').textContent = new Date(y,m).toLocaleString('default',{month:'long',year:'numeric'});
-            const fd = new Date(y,m,1).getDay(), dim = new Date(y,m+1,0).getDate();
-            for(let i=0; i<fd; i++) { const d=document.createElement('div'); d.className='calendar-day other-month'; cd.appendChild(d); }
-            if (!Array.isArray(db.readings)) db.readings = [];
-            const pr = db.readings.filter(r => r.patientId === currentPatientId);
-            for(let i=1; i<=dim; i++) {
-                const d=document.createElement('div'); d.className='calendar-day';
-                const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-                if(ds === new Date().toISOString().split('T')[0]) d.classList.add('today');
-                const dr = pr.filter(r => r.date === ds);
-                let html = `<div style="font-weight:bold;">${i}</div>`;
-                if(dr.length>0) {
-                    html += `<div style="display:flex; flex-wrap:wrap;">`;
-                    dr.forEach(r => { let c='#34a853'; if(r.status==='grade2')c='#d32f2f'; if(r.status==='grade1')c='#f57c00'; if(r.status==='high-normal')c='#fbbc05'; if(r.status==='low')c='#4285f4'; html+=`<div class="day-dot" style="background-color:${c};"></div>`; });
-                    html += `</div>`;
-                    d.onclick = () => { document.getElementById('date-filter').value='custom'; alert(`Readings ${ds}:\n`+dr.map(r=>`${r.time}: ${r.sys}/${r.dia}`).join('\n')); };
-                }
-                d.innerHTML = html; cd.appendChild(d);
-            }
-        }
-        function changeMonth(d) { calDate.setMonth(calDate.getMonth()+d); renderCalendar(); }
-        function exportJSON() {
-            const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
-            a.download = "bp_tracker_backup.json"; document.body.appendChild(a); a.click(); a.remove();
-        }
-        function importJSON(e) {
-            const f = e.target.files[0]; if(!f)return; const r = new FileReader();
-            r.onload = (ev) => { try { const i = JSON.parse(ev.target.result); if(i.patients){ db.patients=i.patients; db.readings=i.readings; saveDB(); loadPatients(); showNotification('Restored'); location.reload(); } } catch(err){ showNotification('Error', 'error'); } };
-            r.readAsText(f);
-        }
-        function generatePDF() {
-            const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            const p = db.patients.find(x => x.id === currentPatientId);
-            const s = document.getElementById('report-start').value, e = document.getElementById('report-end').value;
-            let f = db.readings.filter(r => r.patientId === currentPatientId);
-            if(s) f = f.filter(r => r.date >= s); if(e) f = f.filter(r => r.date <= e);
-            f.sort((a,b) => new Date(a.date) - new Date(b.date));
-            if(f.length===0) return showNotification("No readings", "error");
-            const st = calculateStats(f);
-            doc.setFontSize(18); doc.text("BP Report", 14, 20); doc.setFontSize(12); doc.text(`Patient: ${p?p.name:'?'}, Range: ${s} to ${e}`, 14, 30);
-            doc.text(`Avg: ${st.avgSys}/${st.avgDia}, Range: ${st.minSys}-${st.maxSys} / ${st.minDia}-${st.maxDia}`, 14, 40);
-            let y=50;
-            f.forEach(r => { if(y>270){doc.addPage();y=20;} doc.text(`${r.date} ${r.time} - ${r.sys}/${r.dia} (${getStatusLabel(r.status)})`, 14, y); y+=8; });
-            doc.save("Report.pdf");
-        }
-        function showNotification(m, t='success') { const n=document.getElementById('notification'); document.getElementById('notification-text').textContent=m; n.style.backgroundColor=t==='error'?'#d32f2f':'#323232'; n.classList.add('show'); setTimeout(()=>n.classList.remove('show'), 3000); }
     </script>
 </body>
 </html>
