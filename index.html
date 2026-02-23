@@ -1063,17 +1063,25 @@
         }
 
         function switchPatient(id) {
+            if (!id) return;
             currentPatientId = id;
             localStorage.setItem('currentPatientId', id);
-            document.getElementById('patient-select').value = id;
+
+            const select = document.getElementById('patient-select');
+            if (select) select.value = id;
 
             const p = db.patients.find(x => x.id === id);
-            if(p) {
-                document.getElementById('user-name').textContent = p.name;
-                document.getElementById('user-avatar').textContent = p.name.charAt(0).toUpperCase();
+            if (p) {
+                const userName = document.getElementById('user-name');
+                const userAvatar = document.getElementById('user-avatar');
+
+                if (userName) userName.textContent = p.name;
+                if (userAvatar) userAvatar.textContent = p.name.charAt(0).toUpperCase();
+
                 updateDashboard();
                 renderReadingsTable();
             }
+        }
         }
 
         function saveReading() {
@@ -1506,17 +1514,18 @@ This will REPLACE all current data.`)) {
                     }
 
                     saveDB();
-                    loadPatients();
 
-                    // Switch to first patient if available
+                    // Store first patient ID for after reload
                     if (db.patients.length > 0) {
-                        switchPatient(db.patients[0].id);
+                        localStorage.setItem('currentPatientId', db.patients[0].id);
                     }
 
                     showNotification(`Restored ${correctedReadings.length} readings successfully`);
 
-                    // Reload to apply theme and data
-                    setTimeout(() => location.reload(), 1500);
+                    // Force reload after short delay to properly initialize UI
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
 
                 } catch (err) {
                     console.error('Import error:', err);
