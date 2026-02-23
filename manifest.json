@@ -1,5 +1,5 @@
 {
-  "name": "Blood Pressure Tracker (ISH)",
+  "name": "BP Tracker (ISH)",
   "short_name": "BP Tracker",
   "description": "Blood Pressure Monitor with ISH Standard classification",
   "start_url": "./index.html",
