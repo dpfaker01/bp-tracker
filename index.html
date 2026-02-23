@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- CRITICAL: Native app viewport - no scaling allowed -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="BP Tracker">
+    <meta name="theme-color" content="#4285f4">
+    <meta name="description" content="Blood Pressure Monitor - Track your BP readings offline">
+
+    <title>BP Tracker (ISH Standard)</title>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* NATIVE APP CSS RESET - From CashTrail */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        :root {
+            --primary-color: #4285f4;
+            --secondary-color: #34a853;
+            --danger-color: #d32f2f;
+            --warning-color: #fbbc05;
+            --orange-color: #f57c00;
+            --dark-color: #202124;
+            --light-color: #f8f9fa;
+            --border-color: #dadce0;
+            --bg-color: #f5f5f5;
+            --card-bg: white;
+            --text-color: var(--dark-color);
+            --input-bg: white;
+            --modal-bg: white;
+            --header-bg: white;
+            --table-hover: #f8f9fa;
+            --empty-state-color: #5f6368;
+            --safe-area-top: env(safe-area-inset-top);
+            --safe-area-bottom: env(safe-area-inset-bottom);
+        }
+
+        [data-theme="dark"] {
+            --dark-color: #e8eaed;
+            --light-color: #202124;
+            --bg-color: #121212;
+            --card-bg: #1f1f1f;
+            --text-color: #e8eaed;
+            --input-bg: #2d2d2d;
+            --modal-bg: #2d2d2d;
+            --header-bg: #1f1f1f;
+            --border-color: #3c4043;
+            --table-hover: #2d2d2d;
+            --empty-state-color: #9aa0a6;
+        }
+
+        html {
+            font-family: 'Roboto', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            height: 100%;
+            overflow: hidden; /* Prevent body scroll */
+        }
+
+        body {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            touch-action: pan-y;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* APP CONTAINER - Mobile-first constrained like CashTrail */
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 480px; /* Mobile constraint like CashTrail */
+            margin: 0 auto;
+            width: 100%;
+            background: var(--bg-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* STICKY HEADER with backdrop blur - CashTrail style */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            padding: var(--safe-area-top) 0 15px 0;
+            flex-shrink: 0;
+        }
+
+        [data-theme="dark"] header {
+            background: rgba(31, 31, 31, 0.95);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 0 15px;
+            width: 100%;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+
+        .logo i { margin-right: 8px; font-size: 22px; }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        /* SCROLLABLE MAIN CONTENT - Only this scrolls */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 10px;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
+            padding-bottom: calc(20px + var(--safe-area-bottom));
+        }
+
+        /* Hide scrollbar but keep functionality */
+        .main-content::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        /* TABS - Fixed below header */
+        .tabs {
+            display: flex;
+            overflow-x: auto;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .tabs::-webkit-scrollbar { display: none; }
+
+        .tab {
+            padding: 12px 16px;
+            cursor: pointer;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+            color: var(--text-color);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .tab:active { opacity: 0.7; }
+
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: slideIn 0.3s ease-out; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* CARDS - Native feel with touch feedback */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 15px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:active {
+            transform: scale(0.98);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        /* BUTTONS - Touch optimized */
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            gap: 8px;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+            min-height: 44px; /* Touch target size */
+        }
+
+        .btn:active { transform: scale(0.96); opacity: 0.9; }
+
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-secondary { background-color: var(--input-bg); color: var(--primary-color); border: 1px solid var(--primary-color); }
+        .btn-danger { background-color: var(--danger-color); color: white; }
+        .btn-success { background-color: var(--secondary-color); color: white; }
+        .btn-warning { background-color: var(--warning-color); color: white; }
+
+        .theme-toggle-btn {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle-btn:active { transform: scale(0.9); }
+
+        /* FORM ELEMENTS - Optimized for touch */
+        .form-group { margin-bottom: 15px; }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--text-color);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            font-size: 16px; /* Prevents zoom on iOS */
+            transition: border-color 0.2s;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+        }
+
+        select.form-control {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 40px;
+        }
+
+        /* GRID */
+        .grid { display: grid; grid-gap: 12px; }
+        .grid-2 { grid-template-columns: 1fr; }
+        .grid-3 { grid-template-columns: 1fr; }
+
+        @media (min-width: 400px) {
+            .grid-2 { grid-template-columns: repeat(2, 1fr); }
+            .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        /* STATS - CashTrail style hero cards */
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-color);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-sub {
+            font-size: 12px;
+            margin-top: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stat-sub .min { color: var(--secondary-color); }
+        .stat-sub .max { color: var(--danger-color); }
+
+        /* TABLE - Responsive */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 100%;
+        }
+
+        .table th, .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+
+        .table th {
+            font-weight: 600;
+            color: var(--text-color);
+            background: var(--bg-color);
+        }
+
+        .table tr:active { background: var(--table-hover); }
+
+        /* BADGES */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            display: inline-block;
+        }
+
+        .badge-normal { background-color: #e6f4ea; color: #1e8e3e; }
+        .badge-high-normal, .badge-elevated { background-color: #fef7e0; color: #b06000; }
+        .badge-grade1 { background-color: #ffe0b2; color: #e65100; }
+        .badge-grade2 { background-color: #fad2cf; color: #c62828; }
+        .badge-low { background-color: #e8f0fe; color: #1967d2; }
+
+        [data-theme="dark"] .badge-normal { background-color: rgba(52, 168, 83, 0.2); color: #81c995; }
+        [data-theme="dark"] .badge-high-normal, [data-theme="dark"] .badge-elevated { background-color: rgba(251, 188, 5, 0.2); color: #fdd663; }
+        [data-theme="dark"] .badge-grade1 { background-color: rgba(245, 124, 0, 0.2); color: #ffb74d; }
+        [data-theme="dark"] .badge-grade2 { background-color: rgba(234, 67, 53, 0.2); color: #f28b82; }
+        [data-theme="dark"] .badge-low { background-color: rgba(25, 103, 210, 0.2); color: #8ab4f8; }
+
+        /* MODAL - Bottom sheet style like CashTrail */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .modal.open {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background-color: var(--modal-bg);
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            border-radius: 20px 20px 0 0;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal.open .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .close-modal {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: var(--input-bg);
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .close-modal:active { transform: scale(0.9); background: var(--border-color); }
+
+        /* CALENDAR - Optimized */
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: var(--border-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .calendar-header {
+            background-color: var(--table-hover);
+            padding: 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--text-color);
+        }
+
+        .calendar-day {
+            background-color: var(--card-bg);
+            min-height: 70px;
+            padding: 8px;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .calendar-day:active { background: var(--table-hover); }
+
+        .calendar-day.today {
+            background-color: rgba(66, 133, 244, 0.1);
+            font-weight: 600;
+        }
+
+        .calendar-day.other-month {
+            background-color: var(--table-hover);
+            opacity: 0.5;
+        }
+
+        .day-dot {
+            height: 6px;
+            width: 6px;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 1px;
+        }
+
+        /* CHART */
+        .chart-wrapper {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+
+        /* NOTIFICATION */
+        .notification {
+            position: fixed;
+            bottom: calc(20px + var(--safe-area-bottom));
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: #323232;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 50px;
+            z-index: 2000;
+            transition: transform 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .notification.show { transform: translateX(-50%) translateY(0); }
+
+        /* EMPTY STATE */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--empty-state-color);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* UTILITIES */
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+        .mt-md { margin-top: 15px; }
+        .mb-md { margin-bottom: 15px; }
+
+        /* Desktop constraint */
+        @media (min-width: 481px) {
+            #app {
+                border-left: 1px solid var(--border-color);
+                border-right: 1px solid var(--border-color);
+            }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-heartbeat"></i>
+                    <span>BP Tracker</span>
+                </div>
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">U</div>
+                    <button id="theme-toggle-btn" class="theme-toggle-btn"><i class="fas fa-moon"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="card">
+                <div class="grid grid-2" style="align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Current Patient</label>
+                        <select id="patient-select" class="form-control"><option value="">Select a patient</option></select>
+                    </div>
+                    <button id="add-patient-btn" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add Patient</button>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" data-tab="dashboard">Dashboard</div>
+                <div class="tab" data-tab="readings">Readings</div>
+                <div class="tab" data-tab="calendar">Calendar</div>
+                <div class="tab" data-tab="reports">Reports</div>
+                <div class="tab" data-tab="settings">Settings</div>
+            </div>
+
+            <div id="dashboard-tab" class="tab-content active">
+                <div class="grid grid-3">
+                    <div class="card">
+                        <div class="card-header">Latest Reading</div>
+                        <div id="latest-reading-container"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">Stats (Last 30 Days)</div>
+                        <div id="average-reading-container"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">Status (ISH)</div>
+                        <div id="bp-status-container"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <span>BP Trend</span>
+                        <select id="trend-period" class="form-control" style="width: auto; padding: 8px 30px 8px 12px;">
+                            <option value="7">7 Days</option>
+                            <option value="30" selected>30 Days</option>
+                            <option value="90">90 Days</option>
+                        </select>
+                    </div>
+                    <div class="chart-wrapper"><canvas id="bpTrendChart"></canvas></div>
+                </div>
+            </div>
+
+            <div id="readings-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <span>History</span>
+                        <button id="add-reading-btn" class="btn btn-primary"><i class="fas fa-plus"></i> Add</button>
+                    </div>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Filter</label>
+                            <select id="date-filter" class="form-control">
+                                <option value="all">All Time</option>
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Search</label>
+                            <input type="text" id="search-readings" class="form-control" placeholder="Search notes...">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Sys</th>
+                                    <th>Dia</th>
+                                    <th>Pulse</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="readings-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="no-readings-msg" class="empty-state hidden">
+                        <i class="fas fa-clipboard-list"></i>
+                        <div>No readings found</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="calendar-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <button id="prev-month" class="btn btn-secondary" style="padding: 8px 12px;"><i class="fas fa-chevron-left"></i></button>
+                        <span id="current-month-label" style="flex-grow:1; text-align:center; font-weight:600;"></span>
+                        <button id="next-month" class="btn btn-secondary" style="padding: 8px 12px;"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="calendar">
+                        <div class="calendar-header">Sun</div>
+                        <div class="calendar-header">Mon</div>
+                        <div class="calendar-header">Tue</div>
+                        <div class="calendar-header">Wed</div>
+                        <div class="calendar-header">Thu</div>
+                        <div class="calendar-header">Fri</div>
+                        <div class="calendar-header">Sat</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="reports-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">Export Data</div>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" id="report-start" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">End Date</label>
+                            <input type="date" id="report-end" class="form-control">
+                        </div>
+                    </div>
+                    <button id="generate-pdf-btn" class="btn btn-danger" style="width: 100%;">
+                        <i class="fas fa-file-pdf"></i> Download PDF Report
+                    </button>
+                </div>
+            </div>
+
+            <div id="settings-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">Data Management</div>
+                    <div class="grid grid-2">
+                        <button id="export-json-btn" class="btn btn-success">
+                            <i class="fas fa-download"></i> Backup Data
+                        </button>
+                        <button id="import-json-btn" class="btn btn-warning">
+                            <i class="fas fa-upload"></i> Restore Data
+                        </button>
+                    </div>
+                    <input type="file" id="import-file-input" accept=".json" style="display:none;">
+                </div>
+                <div class="card">
+                    <div class="card-header">About</div>
+                    <p style="color: var(--empty-state-color); font-size: 14px;">
+                        Blood Pressure Monitor v2.5<br>
+                        Native App Experience<br>
+                        Works Offline
+                    </p>
+                </div>
+            </div>
+
+            <div style="height: 20px;"></div>
+        </main>
+    </div>
+
+    <!-- Patient Modal -->
+    <div id="patient-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Patient</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Name</label>
+                    <input type="text" id="p-name" class="form-control" placeholder="Enter patient name">
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Age</label>
+                        <input type="number" id="p-age" class="form-control" placeholder="Years">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Gender</label>
+                        <select id="p-gender" class="form-control">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary close-modal">Cancel</button>
+                <button id="save-patient" class="btn btn-primary">Save Patient</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reading Modal -->
+    <div id="reading-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Reading</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Date</label>
+                        <input type="date" id="r-date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Time</label>
+                        <input type="time" id="r-time" class="form-control">
+                    </div>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Systolic (mmHg)</label>
+                        <input type="number" id="r-sys" class="form-control" placeholder="120">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Diastolic (mmHg)</label>
+                        <input type="number" id="r-dia" class="form-control" placeholder="80">
+                    </div>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Pulse (bpm)</label>
+                        <input type="number" id="r-pulse" class="form-control" placeholder="70">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Weight (kg)</label>
+                        <input type="number" id="r-weight" class="form-control" placeholder="Optional">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea id="r-notes" class="form-control" rows="3" placeholder="Any additional notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary close-modal">Cancel</button>
+                <button id="save-reading" class="btn btn-primary">Save Reading</button>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="pdfChartCanvas" width="1000" height="500" style="display:none;"></canvas>
+
+    <div id="notification" class="notification">
+        <i class="fas fa-info-circle"></i>
+        <span id="notification-text">Message</span>
+    </div>
+
+    <script>
+        // ==========================================
+        // NATIVE APP PREVENTION SCRIPTS - From CashTrail
+        // These prevent pinch zoom, double-tap zoom, and make it feel like a native app
+        // ==========================================
+
+        // Prevent zoom on double-tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
+
+        // Prevent pinch zoom
+        document.addEventListener('touchmove', function(e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Prevent double-tap zoom on buttons
+        document.addEventListener('touchstart', function(e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker Registered'))
+                    .catch(err => console.log('Service Worker Failed', err));
+            });
+        }
+
+        // ==========================================
+        // APP LOGIC
+        // ==========================================
+
+        function safeLoad(key) { 
+            try { 
+                const d = JSON.parse(localStorage.getItem(key)); 
+                return Array.isArray(d) ? d : []; 
+            } catch(e) { 
+                return []; 
+            } 
+        }
+
+        function safeLoadObj(key, def) { 
+            try { 
+                const d = JSON.parse(localStorage.getItem(key)); 
+                return d && typeof d === 'object' && !Array.isArray(d) ? d : def; 
+            } catch(e) { 
+                return def; 
+            } 
+        }
+
+        const db = { 
+            patients: safeLoad('patients'), 
+            readings: safeLoad('readings'), 
+            settings: safeLoadObj('settings', { theme: 'light' }) 
+        };
+
+        let currentPatientId = localStorage.getItem('currentPatientId') || null;
+        let chartInstance = null;
+        let calDate = new Date();
+
+        function saveDB() { 
+            localStorage.setItem('patients', JSON.stringify(db.patients)); 
+            localStorage.setItem('readings', JSON.stringify(db.readings)); 
+            localStorage.setItem('settings', JSON.stringify(db.settings)); 
+        }
+
+        const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            loadPatients();
+            setupEventListeners();
+
+            const now = new Date();
+            document.getElementById('r-date').valueAsDate = now;
+            document.getElementById('r-time').value = now.toTimeString().substr(0,5);
+            document.getElementById('report-end').valueAsDate = now;
+
+            const lastMonth = new Date();
+            lastMonth.setMonth(now.getMonth() - 1);
+            document.getElementById('report-start').valueAsDate = lastMonth;
+
+            if(db.patients.length > 0 && !currentPatientId) {
+                switchPatient(db.patients[0].id);
+            } else if (currentPatientId && db.patients.find(p => p.id === currentPatientId)) {
+                switchPatient(currentPatientId);
+            } else {
+                document.getElementById('patient-modal').classList.add('open');
+            }
+        });
+
+        function setupEventListeners() {
+            // Tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
+                    if(tab.dataset.tab === 'calendar') renderCalendar();
+                    if(tab.dataset.tab === 'dashboard') updateDashboard();
+                });
+            });
+
+            // Close modals
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.target.closest('.modal').classList.remove('open');
+                });
+            });
+
+            // Close modal on backdrop click (CashTrail style)
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.classList.remove('open');
+                    }
+                });
+            });
+
+            // Buttons
+            document.getElementById('add-patient-btn').addEventListener('click', () => {
+                document.getElementById('p-name').value = '';
+                document.getElementById('patient-modal').classList.add('open');
+            });
+
+            document.getElementById('add-reading-btn').addEventListener('click', () => {
+                if(!currentPatientId) return showNotification('Select patient first', 'error');
+                document.getElementById('reading-modal').classList.add('open');
+            });
+
+            document.getElementById('save-patient').addEventListener('click', savePatient);
+            document.getElementById('save-reading').addEventListener('click', saveReading);
+            document.getElementById('date-filter').addEventListener('change', renderReadingsTable);
+            document.getElementById('search-readings').addEventListener('input', renderReadingsTable);
+            document.getElementById('trend-period').addEventListener('change', updateDashboard);
+            document.getElementById('prev-month').addEventListener('click', () => changeMonth(-1));
+            document.getElementById('next-month').addEventListener('click', () => changeMonth(1));
+            document.getElementById('generate-pdf-btn').addEventListener('click', generatePDF);
+            document.getElementById('export-json-btn').addEventListener('click', exportJSON);
+            document.getElementById('import-json-btn').addEventListener('click', () => {
+                document.getElementById('import-file-input').click();
+            });
+            document.getElementById('import-file-input').addEventListener('change', importJSON);
+            document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+        }
+
+        function initTheme() {
+            document.documentElement.setAttribute('data-theme', db.settings.theme);
+            const icon = document.querySelector('#theme-toggle-btn i');
+            icon.className = db.settings.theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            updateDashboard();
+        }
+
+        function toggleTheme() {
+            db.settings.theme = db.settings.theme === 'light' ? 'dark' : 'light';
+            saveDB();
+            initTheme();
+        }
+
+        function loadPatients() {
+            const select = document.getElementById('patient-select');
+            select.innerHTML = '<option value="">Select a patient</option>';
+            db.patients.forEach(p => {
+                const o = document.createElement('option');
+                o.value = p.id;
+                o.textContent = p.name;
+                select.appendChild(o);
+            });
+            select.addEventListener('change', (e) => switchPatient(e.target.value));
+        }
+
+        function savePatient() {
+            const name = document.getElementById('p-name').value.trim();
+            if(!name) return showNotification('Name required', 'error');
+
+            const p = {
+                id: generateId(),
+                name: name,
+                age: document.getElementById('p-age').value,
+                gender: document.getElementById('p-gender').value
+            };
+
+            db.patients.push(p);
+            saveDB();
+            loadPatients();
+            switchPatient(p.id);
+            document.getElementById('patient-modal').classList.remove('open');
+            showNotification('Patient added successfully');
+        }
+
+        function switchPatient(id) {
+            currentPatientId = id;
+            localStorage.setItem('currentPatientId', id);
+            document.getElementById('patient-select').value = id;
+
+            const p = db.patients.find(x => x.id === id);
+            if(p) {
+                document.getElementById('user-name').textContent = p.name;
+                document.getElementById('user-avatar').textContent = p.name.charAt(0).toUpperCase();
+                updateDashboard();
+                renderReadingsTable();
+            }
+        }
+
+        function saveReading() {
+            if(!currentPatientId) return;
+
+            const r = {
+                id: generateId(),
+                patientId: currentPatientId,
+                date: document.getElementById('r-date').value,
+                time: document.getElementById('r-time').value,
+                sys: parseInt(document.getElementById('r-sys').value),
+                dia: parseInt(document.getElementById('r-dia').value),
+                pulse: parseInt(document.getElementById('r-pulse').value) || null,
+                weight: document.getElementById('r-weight').value,
+                notes: document.getElementById('r-notes').value,
+                timestamp: new Date().getTime()
+            };
+
+            if(!r.date || !r.sys || !r.dia) return showNotification('Fill required fields', 'error');
+
+            r.status = getBPStatus(r.sys, r.dia);
+            db.readings.push(r);
+            saveDB();
+
+            document.getElementById('reading-modal').classList.remove('open');
+            document.getElementById('r-sys').value = '';
+            document.getElementById('r-dia').value = '';
+            document.getElementById('r-pulse').value = '';
+            document.getElementById('r-notes').value = '';
+
+            updateDashboard();
+            renderReadingsTable();
+            showNotification('Reading saved');
+        }
+
+        function getBPStatus(s, d) {
+            if(s >= 160 || d >= 100) return 'grade2';
+            if(s >= 140 || d >= 90) return 'grade1';
+            if(s >= 130 || d >= 85) return 'high-normal';
+            if(s < 90 && d < 60) return 'low';
+            return 'normal';
+        }
+
+        function getStatusLabel(s) {
+            // Handle both 'elevated' and 'high-normal' for backward compatibility
+            const status = s === 'elevated' ? 'high-normal' : s;
+            switch(status) {
+                case 'grade2': return 'Grade 2 HTN';
+                case 'grade1': return 'Grade 1 HTN';
+                case 'high-normal': return 'High-Normal';
+                case 'low': return 'Low BP';
+                default: return 'Normal';
+            }
+        }
+
+        function deleteReading(id) {
+            if(!confirm('Delete this reading?')) return;
+            db.readings = db.readings.filter(r => r.id !== id);
+            saveDB();
+            updateDashboard();
+            renderReadingsTable();
+            showNotification('Reading deleted');
+        }
+
+        function renderReadingsTable() {
+            const tbody = document.getElementById('readings-table-body');
+            tbody.innerHTML = '';
+
+            if (!Array.isArray(db.readings)) db.readings = [];
+
+            let f = db.readings.filter(r => r.patientId === currentPatientId);
+            const ft = document.getElementById('date-filter').value;
+            const st = document.getElementById('search-readings').value.toLowerCase();
+            const today = new Date().toISOString().split('T')[0];
+
+            if(ft === 'today') f = f.filter(r => r.date === today);
+            if(ft === 'week') {
+                const d = new Date();
+                d.setDate(d.getDate() - 7);
+                f = f.filter(r => new Date(r.date) >= d);
+            }
+            if(ft === 'month') {
+                const d = new Date();
+                d.setMonth(d.getMonth() - 1);
+                f = f.filter(r => new Date(r.date) >= d);
+            }
+            if(st) f = f.filter(r => r.notes && r.notes.toLowerCase().includes(st));
+
+            f.sort((a,b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
+
+            if(f.length === 0) {
+                document.getElementById('no-readings-msg').classList.remove('hidden');
+            } else {
+                document.getElementById('no-readings-msg').classList.add('hidden');
+                f.forEach(r => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${r.date}<br><small style="color: var(--empty-state-color);">${r.time}</small></td>
+                        <td style="color:var(--danger-color); font-weight:600;">${r.sys}</td>
+                        <td style="color:var(--primary-color); font-weight:600;">${r.dia}</td>
+                        <td>${r.pulse || '-'}</td>
+                        <td><span class="badge badge-${r.status}">${getStatusLabel(r.status)}</span></td>
+                        <td><button class="btn btn-danger" style="padding:6px 10px; min-height:auto;" onclick="deleteReading('${r.id}')"><i class="fas fa-trash"></i></button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        function calculateStats(reads) {
+            const s = reads.map(r => r.sys);
+            const d = reads.map(r => r.dia);
+            const p = reads.map(r => r.pulse || 0);
+            return {
+                minSys: Math.min(...s),
+                maxSys: Math.max(...s),
+                avgSys: Math.round(s.reduce((a,b) => a+b, 0) / s.length),
+                minDia: Math.min(...d),
+                maxDia: Math.max(...d),
+                avgDia: Math.round(d.reduce((a,b) => a+b, 0) / d.length),
+                avgPulse: Math.round(p.reduce((a,b) => a+b, 0) / p.length)
+            };
+        }
+
+        function updateDashboard() {
+            if (!Array.isArray(db.readings)) db.readings = [];
+            const pr = db.readings.filter(r => r.patientId === currentPatientId);
+
+            if(pr.length > 0) {
+                pr.sort((a,b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
+                const l = pr[0];
+
+                document.getElementById('latest-reading-container').innerHTML = `
+                    <div style="text-align:center;">
+                        <div style="font-size:42px; font-weight:700; font-variant-numeric: tabular-nums; line-height:1;">${l.sys}/${l.dia}</div>
+                        <div style="color:var(--empty-state-color); margin-top:8px; font-size:14px;">mmHg</div>
+                        <div style="margin-top:12px;">
+                            <span class="badge badge-${l.status}">${getStatusLabel(l.status)}</span>
+                        </div>
+                        <div style="margin-top:8px; font-size:12px; color:var(--empty-state-color);">
+                            ${l.date} at ${l.time}
+                        </div>
+                    </div>
+                `;
+
+                const d30 = new Date();
+                d30.setDate(d30.getDate() - 30);
+                const rec = pr.filter(r => new Date(r.date) >= d30);
+
+                if(rec.length > 0) {
+                    const s = calculateStats(rec);
+                    document.getElementById('average-reading-container').innerHTML = `
+                        <div>
+                            <div class="stat-label">Average BP</div>
+                            <div class="stat-value">${s.avgSys}/${s.avgDia}</div>
+                            <div class="stat-sub">
+                                <span class="min"><i class="fas fa-arrow-down"></i> ${s.minSys}/${s.minDia}</span>
+                                <span class="max"><i class="fas fa-arrow-up"></i> ${s.maxSys}/${s.maxDia}</span>
+                            </div>
+                            <div style="margin-top:8px; font-size:12px; color:var(--empty-state-color);">
+                                Based on ${rec.length} readings
+                            </div>
+                        </div>
+                    `;
+
+                    let msg = "Normal";
+                    const st = getBPStatus(s.avgSys, s.avgDia);
+                    if(st === 'high-normal') msg = "High-Normal";
+                    if(st === 'grade1') msg = "Grade 1 HTN";
+                    if(st === 'grade2') msg = "Grade 2 HTN";
+                    if(st === 'low') msg = "Low BP";
+
+                    const colorClass = st === 'normal' ? 'var(--secondary-color)' : 
+                                      st === 'low' ? 'var(--primary-color)' :
+                                      st === 'high-normal' ? 'var(--warning-color)' :
+                                      st === 'grade1' ? 'var(--orange-color)' : 'var(--danger-color)';
+
+                    document.getElementById('bp-status-container').innerHTML = `
+                        <div style="text-align:center;">
+                            <div style="font-size:24px; font-weight:700; color:${colorClass};">${msg}</div>
+                            <div style="margin-top:8px; font-size:12px; color:var(--empty-state-color);">
+                                ISH Classification
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('average-reading-container').innerHTML = `
+                        <div class="empty-state" style="padding:20px;">
+                            <i class="fas fa-chart-line" style="font-size:32px;"></i>
+                            <div style="margin-top:8px;">No 30-day data</div>
+                        </div>
+                    `;
+                }
+            } else {
+                document.getElementById('latest-reading-container').innerHTML = `
+                    <div class="empty-state" style="padding:20px;">
+                        <i class="fas fa-heartbeat" style="font-size:32px;"></i>
+                        <div style="margin-top:8px;">No readings yet</div>
+                    </div>
+                `;
+                document.getElementById('average-reading-container').innerHTML = `
+                    <div class="empty-state" style="padding:20px;">
+                        <i class="fas fa-chart-bar" style="font-size:32px;"></i>
+                        <div style="margin-top:8px;">No data available</div>
+                    </div>
+                `;
+                document.getElementById('bp-status-container').innerHTML = `
+                    <div class="empty-state" style="padding:20px;">
+                        <i class="fas fa-stethoscope" style="font-size:32px;"></i>
+                        <div style="margin-top:8px;">Add a reading to see status</div>
+                    </div>
+                `;
+            }
+
+            updateChart(pr);
+        }
+
+        function updateChart(reads) {
+            const ctx = document.getElementById('bpTrendChart').getContext('2d');
+            const days = parseInt(document.getElementById('trend-period').value);
+            const cut = new Date();
+            cut.setDate(cut.getDate() - days);
+
+            const data = reads.filter(r => new Date(r.date) >= cut).sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            if(chartInstance) chartInstance.destroy();
+
+            if(data.length === 0) {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                return;
+            }
+
+            const isDark = db.settings.theme === 'dark';
+            const tc = isDark ? '#e8eaed' : '#5f6368';
+            const gc = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(r => r.date.slice(5)),
+                    datasets: [
+                        {
+                            label: 'Systolic',
+                            data: data.map(r => r.sys),
+                            borderColor: '#ea4335',
+                            backgroundColor: 'rgba(234, 67, 53, 0.1)',
+                            tension: 0.3,
+                            fill: false
+                        },
+                        {
+                            label: 'Diastolic',
+                            data: data.map(r => r.dia),
+                            borderColor: '#4285f4',
+                            backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                            tension: 0.3,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: tc, usePointStyle: true }
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
+                            titleColor: tc,
+                            bodyColor: tc,
+                            borderColor: gc,
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: { color: tc },
+                            grid: { color: gc }
+                        },
+                        x: {
+                            ticks: { color: tc, maxTicksLimit: 7 },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderCalendar() {
+            const cd = document.querySelector('.calendar');
+            const h = Array.from(document.querySelectorAll('.calendar-header'));
+            cd.innerHTML = '';
+            h.forEach(x => cd.appendChild(x));
+
+            const y = calDate.getFullYear(), m = calDate.getMonth();
+            document.getElementById('current-month-label').textContent = new Date(y, m).toLocaleString('default', {month: 'long', year: 'numeric'});
+
+            const fd = new Date(y, m, 1).getDay();
+            const dim = new Date(y, m + 1, 0).getDate();
+
+            for(let i = 0; i < fd; i++) {
+                const d = document.createElement('div');
+                d.className = 'calendar-day other-month';
+                cd.appendChild(d);
+            }
+
+            if (!Array.isArray(db.readings)) db.readings = [];
+            const pr = db.readings.filter(r => r.patientId === currentPatientId);
+
+            for(let i = 1; i <= dim; i++) {
+                const d = document.createElement('div');
+                d.className = 'calendar-day';
+                const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+
+                if(ds === new Date().toISOString().split('T')[0]) d.classList.add('today');
+
+                const dr = pr.filter(r => r.date === ds);
+                let html = `<div style="font-weight:600; margin-bottom:4px;">${i}</div>`;
+
+                if(dr.length > 0) {
+                    html += `<div style="display:flex; flex-wrap:wrap; gap:2px;">`;
+                    dr.forEach(r => {
+                        let c = '#34a853';
+                        if(r.status === 'grade2') c = '#d32f2f';
+                        if(r.status === 'grade1') c = '#f57c00';
+                        if(r.status === 'high-normal') c = '#fbbc05';
+                        if(r.status === 'low') c = '#4285f4';
+                        html += `<div class="day-dot" style="background-color:${c};"></div>`;
+                    });
+                    html += `</div>`;
+                    d.onclick = () => {
+                        const details = dr.map(r => `${r.time}: ${r.sys}/${r.dia} ${getStatusLabel(r.status)}`).join('\n');
+                        showNotification(`${dr.length} reading(s) on ${ds}`);
+                    };
+                }
+
+                d.innerHTML = html;
+                cd.appendChild(d);
+            }
+        }
+
+        function changeMonth(d) {
+            calDate.setMonth(calDate.getMonth() + d);
+            renderCalendar();
+        }
+
+        function exportJSON() {
+            const a = document.createElement('a');
+            a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+            a.download = "bp_tracker_backup_" + new Date().toISOString().split('T')[0] + ".json";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            showNotification('Backup downloaded');
+        }
+
+        function importJSON(e) {
+            const f = e.target.files[0];
+            if(!f) return;
+
+            const r = new FileReader();
+            r.onload = (ev) => {
+                try {
+                    const imported = JSON.parse(ev.target.result);
+
+                    // Validate basic structure
+                    if (!imported.patients || !Array.isArray(imported.patients)) {
+                        throw new Error('Invalid backup: missing patients array');
+                    }
+                    if (!imported.readings || !Array.isArray(imported.readings)) {
+                        throw new Error('Invalid backup: missing readings array');
+                    }
+
+                    // Confirm with user
+                    const readingCount = imported.readings.length;
+                    const patientCount = imported.patients.length;
+
+                    if (!confirm(`Restore ${readingCount} readings for ${patientCount} patients?
+This will REPLACE all current data.`)) {
+                        return;
+                    }
+
+                    // Process and correct data
+                    const correctedReadings = imported.readings.map(r => {
+                        // Ensure all required fields exist
+                        const sys = parseInt(r.sys) || 0;
+                        const dia = parseInt(r.dia) || 0;
+
+                        // Recalculate status using ISH 2020 standard
+                        let status = r.status;
+                        if (sys >= 160 || dia >= 100) status = 'grade2';
+                        else if (sys >= 140 || dia >= 90) status = 'grade1';
+                        else if (sys >= 130 || dia >= 85) status = 'high-normal';
+                        else if (sys < 90 && dia < 60) status = 'low';
+                        else status = 'normal';
+
+                        return {
+                            id: r.id || generateId(),
+                            patientId: r.patientId,
+                            date: r.date,
+                            time: r.time,
+                            sys: sys,
+                            dia: dia,
+                            pulse: r.pulse ? parseInt(r.pulse) : null,
+                            weight: r.weight || '',
+                            notes: r.notes || '',
+                            status: status,
+                            timestamp: r.timestamp || new Date(r.date + 'T' + r.time).getTime(),
+                            createdAt: r.createdAt || r.timestamp || new Date().getTime(),
+                            type: 'reading'
+                        };
+                    });
+
+                    // Update database
+                    db.patients = imported.patients.map(p => ({
+                        ...p,
+                        type: 'patient',
+                        createdAt: p.createdAt || new Date().getTime()
+                    }));
+
+                    db.readings = correctedReadings;
+
+                    // Import settings if available
+                    if (imported.settings) {
+                        db.settings = { ...db.settings, ...imported.settings };
+                    }
+
+                    saveDB();
+                    loadPatients();
+
+                    // Switch to first patient if available
+                    if (db.patients.length > 0) {
+                        switchPatient(db.patients[0].id);
+                    }
+
+                    showNotification(`Restored ${correctedReadings.length} readings successfully`);
+
+                    // Reload to apply theme and data
+                    setTimeout(() => location.reload(), 1500);
+
+                } catch (err) {
+                    console.error('Import error:', err);
+                    showNotification('Import failed: ' + err.message, 'error');
+                }
+            };
+            r.onerror = () => showNotification('Failed to read file', 'error');
+            r.readAsText(f);
+
+            // Reset file input
+            e.target.value = '';
+        }
+                    } else {
+                        throw new Error('Invalid backup format');
+                    }
+                } catch(err) {
+                    showNotification('Failed to restore: ' + err.message, 'error');
+                }
+            };
+            r.readAsText(f);
+            e.target.value = '';
+        }
+
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const p = db.patients.find(x => x.id === currentPatientId);
+            const s = document.getElementById('report-start').value;
+            const e = document.getElementById('report-end').value;
+
+            let f = db.readings.filter(r => r.patientId === currentPatientId);
+            if(s) f = f.filter(r => r.date >= s);
+            if(e) f = f.filter(r => r.date <= e);
+            f.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            if(f.length === 0) return showNotification("No readings in selected range", "error");
+
+            const st = calculateStats(f);
+
+            doc.setFontSize(20);
+            doc.text("Blood Pressure Report", 14, 20);
+            doc.setFontSize(12);
+            doc.text(`Patient: ${p ? p.name : 'Unknown'}`, 14, 30);
+            doc.text(`Report Range: ${s || 'Start'} to ${e || 'End'}`, 14, 38);
+            doc.text(`Total Readings: ${f.length}`, 14, 46);
+
+            doc.setFontSize(14);
+            doc.text("Statistics", 14, 58);
+            doc.setFontSize(11);
+            doc.text(`Average BP: ${st.avgSys}/${st.avgDia} mmHg`, 14, 66);
+            doc.text(`Systolic Range: ${st.minSys} - ${st.maxSys} mmHg`, 14, 72);
+            doc.text(`Diastolic Range: ${st.minDia} - ${st.maxDia} mmHg`, 14, 78);
+
+            let y = 90;
+            doc.setFontSize(14);
+            doc.text("Readings Log", 14, y);
+            y += 8;
+
+            doc.setFontSize(9);
+            f.forEach(r => {
+                if(y > 280) {
+                    doc.addPage();
+                    y = 20;
+                }
+                const status = getStatusLabel(r.status);
+                doc.text(`${r.date} ${r.time} | ${r.sys}/${r.dia} mmHg | Pulse: ${r.pulse || '-'} | ${status}`, 14, y);
+                y += 6;
+            });
+
+            doc.save(`BP_Report_${p ? p.name.replace(/\s+/g, '_') : 'Patient'}_${new Date().toISOString().split('T')[0]}.pdf`);
+            showNotification('PDF report downloaded');
+        }
+
+        function showNotification(m, t = 'success') {
+            const n = document.getElementById('notification');
+            const nt = document.getElementById('notification-text');
+            const ni = n.querySelector('i');
+
+            nt.textContent = m;
+            n.style.backgroundColor = t === 'error' ? '#d32f2f' : '#323232';
+            ni.className = t === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+
+            n.classList.add('show');
+            setTimeout(() => n.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>
