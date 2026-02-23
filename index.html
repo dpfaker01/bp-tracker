@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#4285f4">
     <meta name="description" content="Blood Pressure Monitor - Track your BP readings offline">
 
-    <title>BP Tracker (ISH Standard)</title>
+    <title>BP Tracker - Blood Pressure Monitor</title>
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -758,7 +758,7 @@
                 <div class="card">
                     <div class="card-header">About</div>
                     <p style="color: var(--empty-state-color); font-size: 14px;">
-                        Blood Pressure Monitor v2.5<br>
+                        BP Tracker v2.5<br>
                         Native App Experience<br>
                         Works Offline
                     </p>
@@ -1063,25 +1063,17 @@
         }
 
         function switchPatient(id) {
-            if (!id) return;
             currentPatientId = id;
             localStorage.setItem('currentPatientId', id);
-
-            const select = document.getElementById('patient-select');
-            if (select) select.value = id;
+            document.getElementById('patient-select').value = id;
 
             const p = db.patients.find(x => x.id === id);
-            if (p) {
-                const userName = document.getElementById('user-name');
-                const userAvatar = document.getElementById('user-avatar');
-
-                if (userName) userName.textContent = p.name;
-                if (userAvatar) userAvatar.textContent = p.name.charAt(0).toUpperCase();
-
+            if(p) {
+                document.getElementById('user-name').textContent = p.name;
+                document.getElementById('user-avatar').textContent = p.name.charAt(0).toUpperCase();
                 updateDashboard();
                 renderReadingsTable();
             }
-        }
         }
 
         function saveReading() {
@@ -1463,8 +1455,7 @@
                     const readingCount = imported.readings.length;
                     const patientCount = imported.patients.length;
 
-                    if (!confirm(`Restore ${readingCount} readings for ${patientCount} patients?
-This will REPLACE all current data.`)) {
+                    if (!confirm(`Restore ${readingCount} readings for ${patientCount} patients?\nThis will REPLACE all current data.`)) {
                         return;
                     }
 
@@ -1515,17 +1506,41 @@ This will REPLACE all current data.`)) {
 
                     saveDB();
 
-                    // Store first patient ID for after reload
+                    // Safely reload patients dropdown
+                    loadPatients();
+
+                    // Safely switch to first patient with null checks
                     if (db.patients.length > 0) {
-                        localStorage.setItem('currentPatientId', db.patients[0].id);
+                        const firstPatient = db.patients[0];
+                        currentPatientId = firstPatient.id;
+                        localStorage.setItem('currentPatientId', firstPatient.id);
+
+                        // Safely update patient select
+                        const patientSelect = document.getElementById('patient-select');
+                        if (patientSelect) {
+                            patientSelect.value = firstPatient.id;
+                        }
+
+                        // Safely update user info with null checks
+                        const userNameEl = document.getElementById('user-name');
+                        const userAvatarEl = document.getElementById('user-avatar');
+
+                        if (userNameEl) {
+                            userNameEl.textContent = firstPatient.name;
+                        }
+                        if (userAvatarEl) {
+                            userAvatarEl.textContent = firstPatient.name.charAt(0).toUpperCase();
+                        }
+
+                        // Update dashboard and readings
+                        updateDashboard();
+                        renderReadingsTable();
                     }
 
                     showNotification(`Restored ${correctedReadings.length} readings successfully`);
 
-                    // Force reload after short delay to properly initialize UI
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1500);
+                    // Reload to apply theme and data
+                    setTimeout(() => location.reload(), 1500);
 
                 } catch (err) {
                     console.error('Import error:', err);
@@ -1536,16 +1551,6 @@ This will REPLACE all current data.`)) {
             r.readAsText(f);
 
             // Reset file input
-            e.target.value = '';
-        }
-                    } else {
-                        throw new Error('Invalid backup format');
-                    }
-                } catch(err) {
-                    showNotification('Failed to restore: ' + err.message, 'error');
-                }
-            };
-            r.readAsText(f);
             e.target.value = '';
         }
 
