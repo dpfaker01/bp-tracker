@@ -1,13 +1,15 @@
 {
-  "name": "BPTrack - Blood Pressure Monitor",
+  "name": "BP Tracker - Blood Pressure Monitor",
   "short_name": "BP Tracker",
-  "description": "Offline-capable blood pressure monitoring app with ISH 2020 standard classification",
+  "description": "Professional blood pressure monitoring app with ISH 2020 classification, advanced analytics, and offline support. Track multiple patients, visualize trends, and generate medical reports.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4285f4",
   "orientation": "portrait",
   "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
       "src": "icons/icon-72x72.png",
@@ -63,11 +65,34 @@
     "medical",
     "lifestyle"
   ],
+  "screenshots": [
+    {
+      "src": "screenshots/dashboard.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard view with BP statistics"
+    },
+    {
+      "src": "screenshots/readings.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Readings history table"
+    },
+    {
+      "src": "screenshots/reports.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Advanced analytics and reports"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Add Reading",
       "short_name": "Add Reading",
-      "description": "Quickly add a new BP reading",
+      "description": "Quickly add a new blood pressure reading",
       "url": "/?action=add-reading",
       "icons": [
         {
@@ -79,8 +104,20 @@
     {
       "name": "View Dashboard",
       "short_name": "Dashboard",
-      "description": "View your BP dashboard",
+      "description": "View your BP dashboard and statistics",
       "url": "/?tab=dashboard",
+      "icons": [
+        {
+          "src": "icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Generate Report",
+      "short_name": "Reports",
+      "description": "View analytics and generate PDF reports",
+      "url": "/?tab=reports",
       "icons": [
         {
           "src": "icons/icon-96x96.png",
@@ -94,5 +131,14 @@
   "features": [
     "offline",
     "background-sync"
-  ]
+  ],
+  "id": "/",
+  "launch_handler": {
+    "client_mode": [
+      "navigate-existing",
+      "auto"
+    ]
+  },
+  "edge_side_panel": {},
+  "handle_links": "preferred"
 }
