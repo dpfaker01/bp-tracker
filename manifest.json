@@ -1,5 +1,5 @@
 {
-  "name": "BP Tracker - Blood Pressure Monitor",
+  "name": "BPTrack - Blood Pressure Monitor",
   "short_name": "BP Tracker",
   "description": "Offline-capable blood pressure monitoring app with ISH 2020 standard classification",
   "start_url": "/",
