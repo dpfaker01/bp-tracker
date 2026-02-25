@@ -21,6 +21,7 @@ self.addEventListener('install', (event) => {
             })
             .then(() => {
                 console.log('[SW] Static assets cached successfully');
+                // FORCE ACTIVATION: Skip waiting immediately
                 return self.skipWaiting();
             })
             .catch((err) => {
@@ -29,7 +30,7 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and claim clients
 self.addEventListener('activate', (event) => {
     console.log('[SW] Activating Service Worker...');
 
@@ -47,6 +48,7 @@ self.addEventListener('activate', (event) => {
             })
             .then(() => {
                 console.log('[SW] Service Worker activated');
+                // CRITICAL: Claim all clients immediately so updates apply to current tabs
                 return self.clients.claim();
             })
     );
