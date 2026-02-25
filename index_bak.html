@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#4285f4">
     <meta name="description" content="Blood Pressure Monitor - Track your BP readings offline">
 
-    <title>BP Tracker (ISH Standard)</title>
+    <title>BP Tracker - Blood Pressure Monitor</title>
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -395,13 +395,13 @@
         }
 
         .badge-normal { background-color: #e6f4ea; color: #1e8e3e; }
-        .badge-high-normal { background-color: #fef7e0; color: #b06000; }
+        .badge-high-normal, .badge-elevated { background-color: #fef7e0; color: #b06000; }
         .badge-grade1 { background-color: #ffe0b2; color: #e65100; }
         .badge-grade2 { background-color: #fad2cf; color: #c62828; }
         .badge-low { background-color: #e8f0fe; color: #1967d2; }
 
         [data-theme="dark"] .badge-normal { background-color: rgba(52, 168, 83, 0.2); color: #81c995; }
-        [data-theme="dark"] .badge-high-normal { background-color: rgba(251, 188, 5, 0.2); color: #fdd663; }
+        [data-theme="dark"] .badge-high-normal, [data-theme="dark"] .badge-elevated { background-color: rgba(251, 188, 5, 0.2); color: #fdd663; }
         [data-theme="dark"] .badge-grade1 { background-color: rgba(245, 124, 0, 0.2); color: #ffb74d; }
         [data-theme="dark"] .badge-grade2 { background-color: rgba(234, 67, 53, 0.2); color: #f28b82; }
         [data-theme="dark"] .badge-low { background-color: rgba(25, 103, 210, 0.2); color: #8ab4f8; }
@@ -596,7 +596,37 @@
                 border-right: 1px solid var(--border-color);
             }
         }
-    </style>
+    .stat-card {
+                            background: var(--card-bg);
+                            padding: 15px;
+                            border-radius: 12px;
+                            border: 1px solid var(--border-color);
+                            text-align: center;
+                        }
+
+                        .time-slot-card {
+                            flex: 1;
+                            min-width: 100px;
+                            padding: 12px;
+                            border-radius: 10px;
+                            text-align: center;
+                        }
+
+                        .analytics-section {
+                            margin-bottom: 20px;
+                        }
+
+                        .analytics-title {
+                            font-size: 14px;
+                            font-weight: 600;
+                            margin-bottom: 12px;
+                            color: var(--text-color);
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                        }
+                        </style>
+    <link rel="manifest" href="./manifest.json">
 <base target="_blank">
 </head>
 <body>
@@ -724,20 +754,102 @@
             </div>
 
             <div id="reports-tab" class="tab-content">
+                <!-- Advanced Analytics Dashboard -->
                 <div class="card">
-                    <div class="card-header">Export Data</div>
+                    <div class="card-header">
+                        <span><i class="fas fa-chart-pie"></i> Advanced Analytics</span>
+                        <span id="analytics-period-label" style="font-size: 12px; color: var(--text-secondary);">Last 30 Days</span>
+                    </div>
+
+                    <!-- Key Metrics -->
+                    <div class="grid grid-3" style="margin-bottom: 15px;">
+                        <div class="stat-card" style="background: linear-gradient(135deg, rgba(66,133,244,0.1), rgba(66,133,244,0.05));">
+                            <div class="stat-label" style="color: var(--primary-color);">Average BP</div>
+                            <div class="stat-value" id="analytics-avg-bp" style="font-size: 22px;">--/--</div>
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">mmHg</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, rgba(52,168,83,0.1), rgba(52,168,83,0.05));">
+                            <div class="stat-label" style="color: var(--secondary-color);">Normal Rate</div>
+                            <div class="stat-value" id="analytics-normal-rate" style="font-size: 22px;">--%</div>
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">of readings</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, rgba(234,67,53,0.1), rgba(234,67,53,0.05));">
+                            <div class="stat-label" style="color: var(--danger-color);">Hypertension</div>
+                            <div class="stat-value" id="analytics-htn-rate" style="font-size: 22px;">--%</div>
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Grade 1 & 2</div>
+                        </div>
+                    </div>
+
+                    <!-- Status Distribution Chart -->
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--text-color);">
+                            <i class="fas fa-chart-donut"></i> BP Classification Distribution
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="flex: 1; max-width: 200px;">
+                                <canvas id="statusDistributionChart" width="200" height="200"></canvas>
+                            </div>
+                            <div id="status-legend" style="flex: 1; font-size: 12px;">
+                                <!-- Legend items will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Trend -->
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--text-color);">
+                            <i class="fas fa-chart-line"></i> Weekly Average Trend
+                        </div>
+                        <div style="height: 150px;">
+                            <canvas id="weeklyTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Time of Day Analysis -->
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--text-color);">
+                            <i class="fas fa-clock"></i> Reading Time Distribution
+                        </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;" id="time-distribution">
+                            <!-- Time slots will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PDF Export Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <span><i class="fas fa-file-medical-alt"></i> Generate Medical Report</span>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">
+                        Create a comprehensive visual report with charts and analytics for your doctor.
+                    </p>
                     <div class="grid grid-2">
                         <div class="form-group">
-                            <label class="form-label">Start Date</label>
+                            <label class="form-label">Report Start Date</label>
                             <input type="date" id="report-start" class="form-control">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">End Date</label>
+                            <label class="form-label">Report End Date</label>
                             <input type="date" id="report-end" class="form-control">
                         </div>
                     </div>
-                    <button id="generate-pdf-btn" class="btn btn-danger" style="width: 100%;">
-                        <i class="fas fa-file-pdf"></i> Download PDF Report
+                    <div class="form-group">
+                        <label class="form-label">Include in Report</label>
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 13px;">
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="checkbox" id="include-summary" checked style="width: auto;"> Summary Statistics
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="checkbox" id="include-charts" checked style="width: auto;"> Visual Charts
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="checkbox" id="include-readings" checked style="width: auto;"> Detailed Readings
+                            </label>
+                        </div>
+                    </div>
+                    <button id="generate-pdf-btn" class="btn btn-danger" style="width: 100%; margin-top: 10px;">
+                        <i class="fas fa-file-pdf"></i> Download Visual PDF Report
                     </button>
                 </div>
             </div>
@@ -758,7 +870,7 @@
                 <div class="card">
                     <div class="card-header">About</div>
                     <p style="color: var(--empty-state-color); font-size: 14px;">
-                        Blood Pressure Monitor v2.5<br>
+                        BP Tracker v2.5<br>
                         Native App Experience<br>
                         Works Offline
                     </p>
@@ -972,6 +1084,7 @@
                     document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
                     if(tab.dataset.tab === 'calendar') renderCalendar();
                     if(tab.dataset.tab === 'dashboard') updateDashboard();
+                    if(tab.dataset.tab === 'reports') updateAnalytics();
                 });
             });
 
@@ -1118,7 +1231,9 @@
         }
 
         function getStatusLabel(s) {
-            switch(s) {
+            // Handle both 'elevated' and 'high-normal' for backward compatibility
+            const status = s === 'elevated' ? 'high-normal' : s;
+            switch(status) {
                 case 'grade2': return 'Grade 2 HTN';
                 case 'grade1': return 'Grade 1 HTN';
                 case 'high-normal': return 'High-Normal';
@@ -1439,24 +1554,116 @@
             const r = new FileReader();
             r.onload = (ev) => {
                 try {
-                    const i = JSON.parse(ev.target.result);
-                    if(i.patients && Array.isArray(i.patients)) {
-                        if(confirm('This will replace all current data. Continue?')) {
-                            db.patients = i.patients;
-                            db.readings = i.readings || [];
-                            saveDB();
-                            loadPatients();
-                            if(db.patients.length > 0) switchPatient(db.patients[0].id);
-                            showNotification('Data restored successfully');
-                        }
-                    } else {
-                        throw new Error('Invalid backup format');
+                    const imported = JSON.parse(ev.target.result);
+
+                    // Validate basic structure
+                    if (!imported.patients || !Array.isArray(imported.patients)) {
+                        throw new Error('Invalid backup: missing patients array');
                     }
-                } catch(err) {
-                    showNotification('Failed to restore: ' + err.message, 'error');
+                    if (!imported.readings || !Array.isArray(imported.readings)) {
+                        throw new Error('Invalid backup: missing readings array');
+                    }
+
+                    // Confirm with user
+                    const readingCount = imported.readings.length;
+                    const patientCount = imported.patients.length;
+
+                    if (!confirm(`Restore ${readingCount} readings for ${patientCount} patients?\nThis will REPLACE all current data.`)) {
+                        return;
+                    }
+
+                    // Process and correct data
+                    const correctedReadings = imported.readings.map(r => {
+                        // Ensure all required fields exist
+                        const sys = parseInt(r.sys) || 0;
+                        const dia = parseInt(r.dia) || 0;
+
+                        // Recalculate status using ISH 2020 standard
+                        let status = r.status;
+                        if (sys >= 160 || dia >= 100) status = 'grade2';
+                        else if (sys >= 140 || dia >= 90) status = 'grade1';
+                        else if (sys >= 130 || dia >= 85) status = 'high-normal';
+                        else if (sys < 90 && dia < 60) status = 'low';
+                        else status = 'normal';
+
+                        return {
+                            id: r.id || generateId(),
+                            patientId: r.patientId,
+                            date: r.date,
+                            time: r.time,
+                            sys: sys,
+                            dia: dia,
+                            pulse: r.pulse ? parseInt(r.pulse) : null,
+                            weight: r.weight || '',
+                            notes: r.notes || '',
+                            status: status,
+                            timestamp: r.timestamp || new Date(r.date + 'T' + r.time).getTime(),
+                            createdAt: r.createdAt || r.timestamp || new Date().getTime(),
+                            type: 'reading'
+                        };
+                    });
+
+                    // Update database
+                    db.patients = imported.patients.map(p => ({
+                        ...p,
+                        type: 'patient',
+                        createdAt: p.createdAt || new Date().getTime()
+                    }));
+
+                    db.readings = correctedReadings;
+
+                    // Import settings if available
+                    if (imported.settings) {
+                        db.settings = { ...db.settings, ...imported.settings };
+                    }
+
+                    saveDB();
+
+                    // Safely reload patients dropdown
+                    loadPatients();
+
+                    // Safely switch to first patient with null checks
+                    if (db.patients.length > 0) {
+                        const firstPatient = db.patients[0];
+                        currentPatientId = firstPatient.id;
+                        localStorage.setItem('currentPatientId', firstPatient.id);
+
+                        // Safely update patient select
+                        const patientSelect = document.getElementById('patient-select');
+                        if (patientSelect) {
+                            patientSelect.value = firstPatient.id;
+                        }
+
+                        // Safely update user info with null checks
+                        const userNameEl = document.getElementById('user-name');
+                        const userAvatarEl = document.getElementById('user-avatar');
+
+                        if (userNameEl) {
+                            userNameEl.textContent = firstPatient.name;
+                        }
+                        if (userAvatarEl) {
+                            userAvatarEl.textContent = firstPatient.name.charAt(0).toUpperCase();
+                        }
+
+                        // Update dashboard and readings
+                        updateDashboard();
+                        renderReadingsTable();
+                    }
+
+                    showNotification(`Restored ${correctedReadings.length} readings successfully`);
+
+                    // Reload to apply theme and data
+                    setTimeout(() => location.reload(), 1500);
+
+                } catch (err) {
+                    console.error('Import error:', err);
+                    showNotification('Import failed: ' + err.message, 'error');
                 }
             };
+            r.onerror = () => showNotification('Failed to read file', 'error');
             r.readAsText(f);
+
+            // Reset file input
             e.target.value = '';
         }
 
@@ -1467,48 +1674,552 @@
             const p = db.patients.find(x => x.id === currentPatientId);
             const s = document.getElementById('report-start').value;
             const e = document.getElementById('report-end').value;
+            const includeSummary = document.getElementById('include-summary')?.checked ?? true;
+            const includeCharts = document.getElementById('include-charts')?.checked ?? true;
+            const includeReadings = document.getElementById('include-readings')?.checked ?? true;
 
-            let f = db.readings.filter(r => r.patientId === currentPatientId);
-            if(s) f = f.filter(r => r.date >= s);
-            if(e) f = f.filter(r => r.date <= e);
-            f.sort((a,b) => new Date(a.date) - new Date(b.date));
+            let readings = db.readings.filter(r => r.patientId === currentPatientId);
+            if(s) readings = readings.filter(r => r.date >= s);
+            if(e) readings = readings.filter(r => r.date <= e);
+            readings.sort((a,b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
 
-            if(f.length === 0) return showNotification("No readings in selected range", "error");
+            if(readings.length === 0) return showNotification("No readings in selected range", "error");
 
-            const st = calculateStats(f);
+            const stats = calculateStats(readings);
+            const statusCounts = calculateStatusDistribution(readings);
 
-            doc.setFontSize(20);
-            doc.text("Blood Pressure Report", 14, 20);
+            // Header with blue background
+            doc.setFillColor(66, 133, 244);
+            doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(22);
+            doc.text("Blood Pressure Report", 15, 22);
+            doc.setFontSize(10);
+            doc.text(`Generated on ${new Date().toLocaleDateString('en-US', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}`, 15, 32);
+
+            // Patient Info Section
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Patient: ${p ? p.name : 'Unknown'}`, 15, 52);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            doc.text(`Age: ${p ? p.age + ' years' : '-'}  |  Gender: ${p ? p.gender : '-'}`, 15, 60);
+            doc.text(`Report Period: ${s ? new Date(s).toLocaleDateString() : 'Start'} to ${e ? new Date(e).toLocaleDateString() : 'Present'}`, 15, 67);
+            doc.text(`Total Readings Analyzed: ${readings.length}`, 15, 74);
+
+            let yPos = 85;
+
+            // Summary Statistics Box
+            if(includeSummary) {
+                doc.setDrawColor(66, 133, 244);
+                doc.setLineWidth(0.5);
+                doc.roundedRect(10, yPos - 5, 190, 50, 5, 5, 'S');
+
+                doc.setFontSize(12);
+                doc.setTextColor(66, 133, 244);
+                doc.setFont(undefined, 'bold');
+                doc.text("Summary Statistics", 15, yPos + 5);
+                doc.setFont(undefined, 'normal');
+
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(10);
+
+                // Left column
+                doc.text(`Average BP:`, 20, yPos + 18);
+                doc.setFont(undefined, 'bold');
+                doc.text(`${stats.avgSys}/${stats.avgDia} mmHg`, 50, yPos + 18);
+                doc.setFont(undefined, 'normal');
+
+                doc.text(`Systolic Range:`, 20, yPos + 28);
+                doc.text(`${stats.minSys} - ${stats.maxSys} mmHg`, 55, yPos + 28);
+
+                doc.text(`Diastolic Range:`, 20, yPos + 38);
+                doc.text(`${stats.minDia} - ${stats.maxDia} mmHg`, 58, yPos + 38);
+
+                // Right column
+                doc.text(`Average Pulse:`, 110, yPos + 18);
+                doc.setFont(undefined, 'bold');
+                doc.text(`${stats.avgPulse || '-'} bpm`, 145, yPos + 18);
+                doc.setFont(undefined, 'normal');
+
+                const classification = getBPStatus(stats.avgSys, stats.avgDia);
+                const statusLabels = {'normal': 'Normal', 'high-normal': 'High-Normal', 'grade1': 'Grade 1 HTN', 'grade2': 'Grade 2 HTN', 'low': 'Low BP'};
+                doc.text(`Overall Status:`, 110, yPos + 28);
+                doc.setFont(undefined, 'bold');
+                doc.text(statusLabels[classification], 145, yPos + 28);
+                doc.setFont(undefined, 'normal');
+
+                yPos += 55;
+            }
+
+            // BP Classification Distribution
             doc.setFontSize(12);
-            doc.text(`Patient: ${p ? p.name : 'Unknown'}`, 14, 30);
-            doc.text(`Report Range: ${s || 'Start'} to ${e || 'End'}`, 14, 38);
-            doc.text(`Total Readings: ${f.length}`, 14, 46);
+            doc.setTextColor(66, 133, 244);
+            doc.setFont(undefined, 'bold');
+            doc.text("BP Classification Distribution", 15, yPos);
+            doc.setFont(undefined, 'normal');
+            yPos += 12;
 
-            doc.setFontSize(14);
-            doc.text("Statistics", 14, 58);
-            doc.setFontSize(11);
-            doc.text(`Average BP: ${st.avgSys}/${st.avgDia} mmHg`, 14, 66);
-            doc.text(`Systolic Range: ${st.minSys} - ${st.maxSys} mmHg`, 14, 72);
-            doc.text(`Diastolic Range: ${st.minDia} - ${st.maxDia} mmHg`, 14, 78);
+            // Draw stacked bar
+            const total = readings.length;
+            const barWidth = 180;
+            let currentX = 15;
 
-            let y = 90;
-            doc.setFontSize(14);
-            doc.text("Readings Log", 14, y);
-            y += 8;
+            const statusColors = {
+                'normal': [52, 168, 83],
+                'high-normal': [251, 188, 5],
+                'grade1': [245, 124, 0],
+                'grade2': [234, 67, 53],
+                'low': [66, 133, 244]
+            };
 
-            doc.setFontSize(9);
-            f.forEach(r => {
-                if(y > 280) {
-                    doc.addPage();
-                    y = 20;
+            const statusLabels = {
+                'normal': 'Normal',
+                'high-normal': 'High-Normal',
+                'grade1': 'Grade 1 HTN',
+                'grade2': 'Grade 2 HTN',
+                'low': 'Low BP'
+            };
+
+            // Draw stacked bar
+            Object.keys(statusCounts).forEach(status => {
+                const count = statusCounts[status];
+                if(count > 0) {
+                    const width = (count / total) * barWidth;
+                    const color = statusColors[status] || [128, 128, 128];
+                    doc.setFillColor(color[0], color[1], color[2]);
+                    doc.rect(currentX, yPos, width, 20, 'F');
+
+                    // Add percentage text if bar is wide enough
+                    if(width > 25) {
+                        doc.setTextColor(255, 255, 255);
+                        doc.setFontSize(10);
+                        doc.setFont(undefined, 'bold');
+                        doc.text(`${Math.round((count/total)*100)}%`, currentX + 5, yPos + 13);
+                        doc.setFont(undefined, 'normal');
+                    }
+
+                    currentX += width;
                 }
-                const status = getStatusLabel(r.status);
-                doc.text(`${r.date} ${r.time} | ${r.sys}/${r.dia} mmHg | Pulse: ${r.pulse || '-'} | ${status}`, 14, y);
-                y += 6;
             });
 
+            yPos += 28;
+
+            // Legend with colored boxes
+            doc.setFontSize(9);
+            let legendX = 15;
+            let legendY = yPos;
+
+            Object.keys(statusCounts).forEach((status, idx) => {
+                const count = statusCounts[status];
+                if(count > 0) {
+                    if(legendX > 140) {
+                        legendX = 15;
+                        legendY += 12;
+                    }
+
+                    const color = statusColors[status] || [128, 128, 128];
+                    doc.setFillColor(color[0], color[1], color[2]);
+                    doc.roundedRect(legendX, legendY - 4, 8, 8, 2, 2, 'F');
+
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(`${statusLabels[status]}: ${count}`, legendX + 12, legendY + 2);
+                    legendX += 55;
+                }
+            });
+
+            yPos = legendY + 20;
+
+            // Add chart from dashboard if available
+            if(includeCharts) {
+                try {
+                    const trendCanvas = document.getElementById('bpTrendChart');
+                    if(trendCanvas && yPos < 180) {
+                        doc.setFontSize(12);
+                        doc.setTextColor(66, 133, 244);
+                        doc.setFont(undefined, 'bold');
+                        doc.text("BP Trend Visualization", 15, yPos);
+                        doc.setFont(undefined, 'normal');
+                        yPos += 5;
+
+                        const imgData = trendCanvas.toDataURL('image/png', 1.0);
+                        const imgWidth = 180;
+                        const imgHeight = (trendCanvas.height / trendCanvas.width) * imgWidth;
+
+                        // Ensure it fits on page
+                        const finalHeight = Math.min(imgHeight, 80);
+                        doc.addImage(imgData, 'PNG', 15, yPos, imgWidth, finalHeight);
+                        yPos += finalHeight + 15;
+                    }
+                } catch(e) {
+                    console.log('Chart not added to PDF:', e);
+                }
+            }
+
+            // Detailed Readings Table
+            if(includeReadings) {
+                if(yPos > 240) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+
+                doc.setFontSize(12);
+                doc.setTextColor(66, 133, 244);
+                doc.setFont(undefined, 'bold');
+                doc.text("Detailed Readings Log", 15, yPos);
+                doc.setFont(undefined, 'normal');
+                yPos += 10;
+
+                // Table header
+                doc.setFillColor(66, 133, 244);
+                doc.setTextColor(255, 255, 255);
+                doc.rect(10, yPos - 6, 190, 10, 'F');
+                doc.setFontSize(8);
+                doc.setFont(undefined, 'bold');
+                doc.text("Date", 12, yPos);
+                doc.text("Time", 42, yPos);
+                doc.text("BP (mmHg)", 68, yPos);
+                doc.text("Pulse", 95, yPos);
+                doc.text("Classification", 115, yPos);
+                doc.text("Notes", 160, yPos);
+                doc.setFont(undefined, 'normal');
+                yPos += 10;
+
+                // Table rows
+                doc.setTextColor(0, 0, 0);
+                readings.forEach((r, idx) => {
+                    if(yPos > 285) {
+                        doc.addPage();
+                        yPos = 20;
+                        // Redraw header
+                        doc.setFillColor(66, 133, 244);
+                        doc.setTextColor(255, 255, 255);
+                        doc.rect(10, yPos - 6, 190, 10, 'F');
+                        doc.setFontSize(8);
+                        doc.setFont(undefined, 'bold');
+                        doc.text("Date", 12, yPos);
+                        doc.text("Time", 42, yPos);
+                        doc.text("BP (mmHg)", 68, yPos);
+                        doc.text("Pulse", 95, yPos);
+                        doc.text("Classification", 115, yPos);
+                        doc.text("Notes", 160, yPos);
+                        doc.setFont(undefined, 'normal');
+                        yPos += 10;
+                        doc.setTextColor(0, 0, 0);
+                    }
+
+                    // Alternate row colors
+                    if(idx % 2 === 0) {
+                        doc.setFillColor(245, 245, 245);
+                        doc.rect(10, yPos - 6, 190, 8, 'F');
+                    }
+
+                    // Status color indicator
+                    const statusColor = statusColors[r.status] || [128, 128, 128];
+                    doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
+                    doc.circle(112, yPos - 2, 2, 'F');
+
+                    doc.setFontSize(7);
+                    doc.text(r.date, 12, yPos);
+                    doc.text(r.time, 42, yPos);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(`${r.sys}/${r.dia}`, 68, yPos);
+                    doc.setFont(undefined, 'normal');
+                    doc.text(r.pulse ? r.pulse.toString() : '-', 95, yPos);
+                    doc.text(statusLabels[r.status] || r.status, 115, yPos);
+                    if(r.notes) {
+                        const notes = r.notes.length > 20 ? r.notes.substring(0, 20) + '...' : r.notes;
+                        doc.text(notes, 160, yPos);
+                    }
+                    yPos += 8;
+                });
+            }
+
+            // Footer on all pages
+            const pageCount = doc.internal.getNumberOfPages();
+            for(let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(128, 128, 128);
+                doc.text(`BP Tracker Medical Report - Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+                doc.setFontSize(7);
+                doc.text("This report is generated for informational purposes. Please consult your healthcare provider for medical advice.", 105, 295, { align: 'center' });
+            }
+
             doc.save(`BP_Report_${p ? p.name.replace(/\s+/g, '_') : 'Patient'}_${new Date().toISOString().split('T')[0]}.pdf`);
-            showNotification('PDF report downloaded');
+            showNotification('Visual medical report downloaded successfully');
+        }
+
+        
+        // Analytics Dashboard Functions
+        function updateAnalytics() {
+            if(!currentPatientId) return;
+
+            const readings = db.readings.filter(r => r.patientId === currentPatientId);
+            if(readings.length === 0) {
+                document.getElementById('analytics-avg-bp').textContent = '--/--';
+                document.getElementById('analytics-normal-rate').textContent = '--%';
+                document.getElementById('analytics-htn-rate').textContent = '--%';
+                return;
+            }
+
+            const stats = calculateStats(readings);
+            const statusCounts = calculateStatusDistribution(readings);
+            const total = readings.length;
+
+            // Update key metrics
+            document.getElementById('analytics-avg-bp').textContent = `${stats.avgSys}/${stats.avgDia}`;
+
+            const normalCount = (statusCounts['normal'] || 0) + (statusCounts['low'] || 0);
+            const normalRate = Math.round((normalCount / total) * 100);
+            document.getElementById('analytics-normal-rate').textContent = `${normalRate}%`;
+
+            const htnCount = (statusCounts['grade1'] || 0) + (statusCounts['grade2'] || 0);
+            const htnRate = Math.round((htnCount / total) * 100);
+            document.getElementById('analytics-htn-rate').textContent = `${htnRate}%`;
+
+            // Update period label
+            const dates = readings.map(r => new Date(r.date));
+            const minDate = new Date(Math.min(...dates));
+            const maxDate = new Date(Math.max(...dates));
+            const daysDiff = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+            document.getElementById('analytics-period-label').textContent = 
+                daysDiff > 1 ? `Last ${daysDiff} Days` : 'Single Day';
+
+            // Render status distribution chart
+            renderStatusDistributionChart(statusCounts, total);
+
+            // Render weekly trend
+            renderWeeklyTrendChart(readings);
+
+            // Render time distribution
+            renderTimeDistribution(readings);
+        }
+
+        function renderStatusDistributionChart(counts, total) {
+            const ctx = document.getElementById('statusDistributionChart');
+            if(!ctx) return;
+
+            // Destroy existing chart if any
+            if(window.statusDistChart) {
+                window.statusDistChart.destroy();
+            }
+
+            const data = {
+                labels: ['Normal', 'High-Normal', 'Grade 1', 'Grade 2', 'Low'],
+                datasets: [{
+                    data: [
+                        counts['normal'] || 0,
+                        counts['high-normal'] || 0,
+                        counts['grade1'] || 0,
+                        counts['grade2'] || 0,
+                        counts['low'] || 0
+                    ],
+                    backgroundColor: [
+                        '#34a853',  // Normal - green
+                        '#fbbc05',  // High-normal - yellow
+                        '#f57c00',  // Grade 1 - orange
+                        '#ea4335',  // Grade 2 - red
+                        '#4285f4'   // Low - blue
+                    ],
+                    borderWidth: 0
+                }]
+            };
+
+            const isDark = db.settings.theme === 'dark';
+
+            window.statusDistChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
+                            titleColor: isDark ? '#e8eaed' : '#0f172a',
+                            bodyColor: isDark ? '#e8eaed' : '#0f172a',
+                            callbacks: {
+                                label: function(context) {
+                                    const val = context.parsed;
+                                    const pct = ((val / total) * 100).toFixed(1);
+                                    return ` ${context.label}: ${val} (${pct}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Update legend
+            const legendHtml = `
+                <div style="margin-bottom: 8px;"><span style="display: inline-block; width: 12px; height: 12px; background: #34a853; border-radius: 2px; margin-right: 8px;"></span>Normal: ${counts['normal'] || 0}</div>
+                <div style="margin-bottom: 8px;"><span style="display: inline-block; width: 12px; height: 12px; background: #fbbc05; border-radius: 2px; margin-right: 8px;"></span>High-Normal: ${counts['high-normal'] || 0}</div>
+                <div style="margin-bottom: 8px;"><span style="display: inline-block; width: 12px; height: 12px; background: #f57c00; border-radius: 2px; margin-right: 8px;"></span>Grade 1 HTN: ${counts['grade1'] || 0}</div>
+                <div style="margin-bottom: 8px;"><span style="display: inline-block; width: 12px; height: 12px; background: #ea4335; border-radius: 2px; margin-right: 8px;"></span>Grade 2 HTN: ${counts['grade2'] || 0}</div>
+                <div><span style="display: inline-block; width: 12px; height: 12px; background: #4285f4; border-radius: 2px; margin-right: 8px;"></span>Low BP: ${counts['low'] || 0}</div>
+            `;
+            document.getElementById('status-legend').innerHTML = legendHtml;
+        }
+
+        function renderWeeklyTrendChart(readings) {
+            const ctx = document.getElementById('weeklyTrendChart');
+            if(!ctx) return;
+
+            if(window.weeklyTrendChart) {
+                window.weeklyTrendChart.destroy();
+            }
+
+            // Group by week
+            const weeklyData = {};
+            readings.forEach(r => {
+                const date = new Date(r.date);
+                const weekStart = new Date(date);
+                weekStart.setDate(date.getDate() - date.getDay());
+                const weekKey = weekStart.toISOString().split('T')[0];
+
+                if(!weeklyData[weekKey]) {
+                    weeklyData[weekKey] = { sys: [], dia: [] };
+                }
+                weeklyData[weekKey].sys.push(r.sys);
+                weeklyData[weekKey].dia.push(r.dia);
+            });
+
+            const sortedWeeks = Object.keys(weeklyData).sort();
+            const labels = sortedWeeks.map(w => {
+                const d = new Date(w);
+                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+
+            const avgSys = sortedWeeks.map(w => {
+                const sum = weeklyData[w].sys.reduce((a,b) => a+b, 0);
+                return Math.round(sum / weeklyData[w].sys.length);
+            });
+
+            const avgDia = sortedWeeks.map(w => {
+                const sum = weeklyData[w].dia.reduce((a,b) => a+b, 0);
+                return Math.round(sum / weeklyData[w].dia.length);
+            });
+
+            const isDark = db.settings.theme === 'dark';
+            const textColor = isDark ? '#e8eaed' : '#5f6368';
+
+            window.weeklyTrendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Systolic',
+                            data: avgSys,
+                            borderColor: '#ea4335',
+                            backgroundColor: 'rgba(234, 67, 53, 0.1)',
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#ea4335'
+                        },
+                        {
+                            label: 'Diastolic',
+                            data: avgDia,
+                            borderColor: '#4285f4',
+                            backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#4285f4'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: textColor, usePointStyle: true, boxWidth: 8 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: { color: textColor, font: { size: 10 } },
+                            grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
+                        },
+                        x: {
+                            ticks: { color: textColor, font: { size: 10 }, maxTicksLimit: 6 },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTimeDistribution(readings) {
+            const container = document.getElementById('time-distribution');
+            if(!container) return;
+
+            // Categorize by time of day
+            const timeSlots = {
+                'Morning (6-12)': 0,
+                'Afternoon (12-18)': 0,
+                'Evening (18-22)': 0,
+                'Night (22-6)': 0
+            };
+
+            readings.forEach(r => {
+                const hour = parseInt(r.time.split(':')[0]);
+                if(hour >= 6 && hour < 12) timeSlots['Morning (6-12)']++;
+                else if(hour >= 12 && hour < 18) timeSlots['Afternoon (12-18)']++;
+                else if(hour >= 18 && hour < 22) timeSlots['Evening (18-22)']++;
+                else timeSlots['Night (22-6)']++;
+            });
+
+            const colors = ['#34a853', '#fbbc05', '#f57c00', '#4285f4'];
+            let html = '';
+            let idx = 0;
+
+            for(const [slot, count] of Object.entries(timeSlots)) {
+                if(count > 0) {
+                    html += `
+                        <div style="flex: 1; min-width: 100px; background: ${colors[idx]}20; border-left: 4px solid ${colors[idx]}; padding: 10px; border-radius: 8px;">
+                            <div style="font-size: 11px; color: var(--text-secondary);">${slot}</div>
+                            <div style="font-size: 20px; font-weight: 700; color: ${colors[idx]};">${count}</div>
+                            <div style="font-size: 10px; color: var(--text-secondary);">readings</div>
+                        </div>
+                    `;
+                }
+                idx++;
+            }
+
+            container.innerHTML = html || '<div style="color: var(--text-secondary); font-size: 12px;">No time data available</div>';
+        }
+
+        // Helper function for status distribution
+        function calculateStatusDistribution(readings) {
+            const counts = {
+                'normal': 0,
+                'high-normal': 0,
+                'grade1': 0,
+                'grade2': 0,
+                'low': 0
+            };
+            readings.forEach(r => {
+                if(counts.hasOwnProperty(r.status)) {
+                    counts[r.status]++;
+                }
+            });
+            return counts;
+        }
+
+        // Helper function to get BP status
+        function getBPStatus(s, d) {
+            if(s >= 160 || d >= 100) return 'grade2';
+            if(s >= 140 || d >= 90) return 'grade1';
+            if(s >= 130 || d >= 85) return 'high-normal';
+            if(s < 90 && d < 60) return 'low';
+            return 'normal';
         }
 
         function showNotification(m, t = 'success') {
@@ -1526,3 +2237,4 @@
     </script>
 </body>
 </html>
+
