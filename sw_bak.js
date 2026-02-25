@@ -1,7 +1,7 @@
 // BP Tracker Service Worker
 // Provides offline functionality and caching
 
-const CACHE_NAME = 'bp-tracker-v2.5';
+const CACHE_NAME = 'bp-tracker-v2.5-native';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -244,3 +244,4 @@ async function showDailyReminder() {
 
 // Console log on successful registration
 console.log('[SW] BP Tracker Service Worker loaded');
+
