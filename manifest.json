@@ -2,7 +2,7 @@
   "name": "BP Tracker - Blood Pressure Monitor",
   "short_name": "BP Tracker",
   "description": "Professional blood pressure monitoring app with ISH 2020 classification, advanced analytics, and offline support. Track multiple patients, visualize trends, and generate medical reports.",
-  "start_url": "/",
+  "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4285f4",
@@ -10,6 +10,7 @@
   "scope": "/",
   "lang": "en",
   "dir": "ltr",
+  "id": "/index.html",
   "icons": [
     {
       "src": "icons/icon-72x72.png",
@@ -93,7 +94,7 @@
       "name": "Add Reading",
       "short_name": "Add Reading",
       "description": "Quickly add a new blood pressure reading",
-      "url": "/?action=add-reading",
+      "url": "/index.html?action=add-reading",
       "icons": [
         {
           "src": "icons/icon-96x96.png",
@@ -105,7 +106,7 @@
       "name": "View Dashboard",
       "short_name": "Dashboard",
       "description": "View your BP dashboard and statistics",
-      "url": "/?tab=dashboard",
+      "url": "/index.html?tab=dashboard",
       "icons": [
         {
           "src": "icons/icon-96x96.png",
@@ -117,7 +118,7 @@
       "name": "Generate Report",
       "short_name": "Reports",
       "description": "View analytics and generate PDF reports",
-      "url": "/?tab=reports",
+      "url": "/index.html?tab=reports",
       "icons": [
         {
           "src": "icons/icon-96x96.png",
@@ -132,7 +133,6 @@
     "offline",
     "background-sync"
   ],
-  "id": "/",
   "launch_handler": {
     "client_mode": [
       "navigate-existing",
