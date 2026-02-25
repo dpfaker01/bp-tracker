@@ -758,7 +758,26 @@
                 <div class="card">
                     <div class="card-header">
                         <span><i class="fas fa-chart-pie"></i> Advanced Analytics</span>
-                        <span id="analytics-period-label" style="font-size: 12px; color: var(--text-secondary);">Last 30 Days</span>
+                        <select id="analytics-date-filter" class="form-control" style="width: auto; padding: 8px 30px 8px 12px; font-size: 13px;" onchange="updateAnalytics()">
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="7days">Last 7 Days</option>
+                            <option value="30days" selected>Last 30 Days</option>
+                            <option value="90days">Last 90 Days</option>
+                            <option value="custom">Custom Range...</option>
+                        </select>
+                    </div>
+
+                    <!-- Custom Date Range (hidden by default) -->
+                    <div id="analytics-custom-range" class="grid grid-2 hidden" style="margin-bottom: 15px; padding: 15px; background: var(--bg-primary); border-radius: 8px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">From</label>
+                            <input type="date" id="analytics-start-date" class="form-control" style="padding: 8px;" onchange="updateAnalytics()">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">To</label>
+                            <input type="date" id="analytics-end-date" class="form-control" style="padding: 8px;" onchange="updateAnalytics()">
+                        </div>
                     </div>
 
                     <!-- Key Metrics -->
@@ -795,13 +814,13 @@
                         </div>
                     </div>
 
-                    <!-- Weekly Trend -->
+                    <!-- Monthly Comparison -->
                     <div style="margin-bottom: 20px;">
                         <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--text-color);">
-                            <i class="fas fa-chart-line"></i> Weekly Average Trend
+                            <i class="fas fa-chart-bar"></i> Monthly Comparison & Analysis
                         </div>
-                        <div style="height: 150px;">
-                            <canvas id="weeklyTrendChart"></canvas>
+                        <div id="monthly-comparison-container" style="background: var(--bg-primary); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color);">
+                            <!-- Monthly comparison cards will be inserted here -->
                         </div>
                     </div>
 
@@ -1091,7 +1110,21 @@
             // Close modals
             document.querySelectorAll('.close-modal').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    e.target.closest('.modal').classList.remove('open');
+                    const modal = e.target.closest('.modal');
+                    modal.classList.remove('open');
+
+                    // Reset edit mode if closing reading modal
+                    if(modal.id === 'reading-modal') {
+                        delete modal.dataset.editId;
+                        document.querySelector('#reading-modal .modal-header h3').textContent = 'Add Reading';
+                        document.getElementById('save-reading').textContent = 'Save Reading';
+                        // Clear form
+                        document.getElementById('r-sys').value = '';
+                        document.getElementById('r-dia').value = '';
+                        document.getElementById('r-pulse').value = '';
+                        document.getElementById('r-weight').value = '';
+                        document.getElementById('r-notes').value = '';
+                    }
                 });
             });
 
@@ -1192,8 +1225,9 @@
         function saveReading() {
             if(!currentPatientId) return;
 
+            const editId = document.getElementById('reading-modal').dataset.editId;
+
             const r = {
-                id: generateId(),
                 patientId: currentPatientId,
                 date: document.getElementById('r-date').value,
                 time: document.getElementById('r-time').value,
@@ -1202,24 +1236,43 @@
                 pulse: parseInt(document.getElementById('r-pulse').value) || null,
                 weight: document.getElementById('r-weight').value,
                 notes: document.getElementById('r-notes').value,
-                timestamp: new Date().getTime()
+                status: getBPStatus(parseInt(document.getElementById('r-sys').value), parseInt(document.getElementById('r-dia').value))
             };
 
             if(!r.date || !r.sys || !r.dia) return showNotification('Fill required fields', 'error');
 
-            r.status = getBPStatus(r.sys, r.dia);
-            db.readings.push(r);
+            if(editId) {
+                // Update existing reading
+                const idx = db.readings.findIndex(reading => reading.id === editId);
+                if(idx !== -1) {
+                    db.readings[idx] = { ...db.readings[idx], ...r };
+                    showNotification('Reading updated successfully');
+                }
+                // Clear edit ID
+                delete document.getElementById('reading-modal').dataset.editId;
+                document.querySelector('#reading-modal .modal-header h3').textContent = 'Add Reading';
+                document.getElementById('save-reading').textContent = 'Save Reading';
+            } else {
+                // Add new reading
+                r.id = generateId();
+                r.timestamp = new Date().getTime();
+                r.createdAt = new Date().getTime();
+                r.type = 'reading';
+                db.readings.push(r);
+                showNotification('Reading saved');
+            }
+
             saveDB();
 
             document.getElementById('reading-modal').classList.remove('open');
             document.getElementById('r-sys').value = '';
             document.getElementById('r-dia').value = '';
             document.getElementById('r-pulse').value = '';
+            document.getElementById('r-weight').value = '';
             document.getElementById('r-notes').value = '';
 
             updateDashboard();
             renderReadingsTable();
-            showNotification('Reading saved');
         }
 
         function getBPStatus(s, d) {
@@ -1240,6 +1293,33 @@
                 case 'low': return 'Low BP';
                 default: return 'Normal';
             }
+        }
+
+        function editReading(id) {
+            const reading = db.readings.find(r => r.id === id);
+            if(!reading) {
+                showNotification('Reading not found', 'error');
+                return;
+            }
+
+            // Populate the edit form
+            document.getElementById('r-date').value = reading.date;
+            document.getElementById('r-time').value = reading.time;
+            document.getElementById('r-sys').value = reading.sys;
+            document.getElementById('r-dia').value = reading.dia;
+            document.getElementById('r-pulse').value = reading.pulse || '';
+            document.getElementById('r-weight').value = reading.weight || '';
+            document.getElementById('r-notes').value = reading.notes || '';
+
+            // Store the ID being edited
+            document.getElementById('reading-modal').dataset.editId = id;
+
+            // Update modal title and button
+            document.querySelector('#reading-modal .modal-header h3').textContent = 'Edit Reading';
+            document.getElementById('save-reading').textContent = 'Update Reading';
+
+            // Show modal
+            document.getElementById('reading-modal').classList.add('open');
         }
 
         function deleteReading(id) {
@@ -1289,7 +1369,16 @@
                         <td style="color:var(--primary-color); font-weight:600;">${r.dia}</td>
                         <td>${r.pulse || '-'}</td>
                         <td><span class="badge badge-${r.status}">${getStatusLabel(r.status)}</span></td>
-                        <td><button class="btn btn-danger" style="padding:6px 10px; min-height:auto;" onclick="deleteReading('${r.id}')"><i class="fas fa-trash"></i></button></td>
+                        <td>
+                            <div style="display: flex; gap: 5px;">
+                                <button class="btn btn-secondary" style="padding:6px 10px; min-height:auto; font-size: 12px;" onclick="editReading('${r.id}')" title="Edit Reading">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-danger" style="padding:6px 10px; min-height:auto; font-size: 12px;" onclick="deleteReading('${r.id}')" title="Delete Reading">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -1956,11 +2045,57 @@
         function updateAnalytics() {
             if(!currentPatientId) return;
 
-            const readings = db.readings.filter(r => r.patientId === currentPatientId);
+            const filterType = document.getElementById('analytics-date-filter').value;
+            const customRangeDiv = document.getElementById('analytics-custom-range');
+
+            // Show/hide custom date range
+            if(filterType === 'custom') {
+                customRangeDiv.classList.remove('hidden');
+            } else {
+                customRangeDiv.classList.add('hidden');
+            }
+
+            // Get filtered readings based on date filter
+            let readings = db.readings.filter(r => r.patientId === currentPatientId);
+            const today = new Date().toISOString().split('T')[0];
+
+            switch(filterType) {
+                case 'today':
+                    readings = readings.filter(r => r.date === today);
+                    break;
+                case '7days':
+                    const d7 = new Date();
+                    d7.setDate(d7.getDate() - 7);
+                    readings = readings.filter(r => new Date(r.date) >= d7);
+                    break;
+                case '30days':
+                    const d30 = new Date();
+                    d30.setDate(d30.getDate() - 30);
+                    readings = readings.filter(r => new Date(r.date) >= d30);
+                    break;
+                case '90days':
+                    const d90 = new Date();
+                    d90.setDate(d90.getDate() - 90);
+                    readings = readings.filter(r => new Date(r.date) >= d90);
+                    break;
+                case 'custom':
+                    const startDate = document.getElementById('analytics-start-date').value;
+                    const endDate = document.getElementById('analytics-end-date').value;
+                    if(startDate) readings = readings.filter(r => r.date >= startDate);
+                    if(endDate) readings = readings.filter(r => r.date <= endDate);
+                    break;
+                case 'all':
+                default:
+                    // Keep all readings
+                    break;
+            }
+
             if(readings.length === 0) {
                 document.getElementById('analytics-avg-bp').textContent = '--/--';
                 document.getElementById('analytics-normal-rate').textContent = '--%';
                 document.getElementById('analytics-htn-rate').textContent = '--%';
+                document.getElementById('monthly-comparison-container').innerHTML = 
+                    '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">No readings in selected date range</div>';
                 return;
             }
 
@@ -1979,19 +2114,11 @@
             const htnRate = Math.round((htnCount / total) * 100);
             document.getElementById('analytics-htn-rate').textContent = `${htnRate}%`;
 
-            // Update period label
-            const dates = readings.map(r => new Date(r.date));
-            const minDate = new Date(Math.min(...dates));
-            const maxDate = new Date(Math.max(...dates));
-            const daysDiff = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
-            document.getElementById('analytics-period-label').textContent = 
-                daysDiff > 1 ? `Last ${daysDiff} Days` : 'Single Day';
-
             // Render status distribution chart
             renderStatusDistributionChart(statusCounts, total);
 
-            // Render weekly trend
-            renderWeeklyTrendChart(readings);
+            // Render monthly comparison (replaces weekly trend)
+            renderMonthlyComparison(readings);
 
             // Render time distribution
             renderTimeDistribution(readings);
@@ -2067,93 +2194,104 @@
             document.getElementById('status-legend').innerHTML = legendHtml;
         }
 
-        function renderWeeklyTrendChart(readings) {
-            const ctx = document.getElementById('weeklyTrendChart');
-            if(!ctx) return;
+        function renderMonthlyComparison(readings) {
+            const container = document.getElementById('monthly-comparison-container');
+            if(!container) return;
 
-            if(window.weeklyTrendChart) {
-                window.weeklyTrendChart.destroy();
-            }
-
-            // Group by week
-            const weeklyData = {};
+            // Group readings by month
+            const monthlyData = {};
             readings.forEach(r => {
                 const date = new Date(r.date);
-                const weekStart = new Date(date);
-                weekStart.setDate(date.getDate() - date.getDay());
-                const weekKey = weekStart.toISOString().split('T')[0];
+                const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                const monthSortKey = date.toISOString().slice(0, 7);
 
-                if(!weeklyData[weekKey]) {
-                    weeklyData[weekKey] = { sys: [], dia: [] };
+                if(!monthlyData[monthSortKey]) {
+                    monthlyData[monthSortKey] = {
+                        displayName: monthKey,
+                        sys: [],
+                        dia: [],
+                        readings: 0
+                    };
                 }
-                weeklyData[weekKey].sys.push(r.sys);
-                weeklyData[weekKey].dia.push(r.dia);
+                monthlyData[monthSortKey].sys.push(r.sys);
+                monthlyData[monthSortKey].dia.push(r.dia);
+                monthlyData[monthSortKey].readings++;
             });
 
-            const sortedWeeks = Object.keys(weeklyData).sort();
-            const labels = sortedWeeks.map(w => {
-                const d = new Date(w);
-                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const sortedMonths = Object.keys(monthlyData).sort();
+
+            if(sortedMonths.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">No monthly data available</div>';
+                return;
+            }
+
+            const monthlyAverages = sortedMonths.map(key => {
+                const data = monthlyData[key];
+                return {
+                    month: data.displayName,
+                    avgSys: Math.round(data.sys.reduce((a,b) => a+b, 0) / data.sys.length),
+                    avgDia: Math.round(data.dia.reduce((a,b) => a+b, 0) / data.dia.length),
+                    readings: data.readings
+                };
             });
 
-            const avgSys = sortedWeeks.map(w => {
-                const sum = weeklyData[w].sys.reduce((a,b) => a+b, 0);
-                return Math.round(sum / weeklyData[w].sys.length);
-            });
+            let html = '';
 
-            const avgDia = sortedWeeks.map(w => {
-                const sum = weeklyData[w].dia.reduce((a,b) => a+b, 0);
-                return Math.round(sum / weeklyData[w].dia.length);
-            });
+            // Month-over-month comparison
+            if(monthlyAverages.length >= 2) {
+                const current = monthlyAverages[monthlyAverages.length - 1];
+                const previous = monthlyAverages[monthlyAverages.length - 2];
 
-            const isDark = db.settings.theme === 'dark';
-            const textColor = isDark ? '#e8eaed' : '#5f6368';
+                const sysDiff = current.avgSys - previous.avgSys;
+                const diaDiff = current.avgDia - previous.avgDia;
+                const sysPercent = previous.avgSys !== 0 ? ((sysDiff / previous.avgSys) * 100).toFixed(2) : 0;
+                const diaPercent = previous.avgDia !== 0 ? ((diaDiff / previous.avgDia) * 100).toFixed(2) : 0;
 
-            window.weeklyTrendChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Systolic',
-                            data: avgSys,
-                            borderColor: '#ea4335',
-                            backgroundColor: 'rgba(234, 67, 53, 0.1)',
-                            tension: 0.4,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#ea4335'
-                        },
-                        {
-                            label: 'Diastolic',
-                            data: avgDia,
-                            borderColor: '#4285f4',
-                            backgroundColor: 'rgba(66, 133, 244, 0.1)',
-                            tension: 0.4,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#4285f4'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: { color: textColor, usePointStyle: true, boxWidth: 8 }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            ticks: { color: textColor, font: { size: 10 } },
-                            grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
-                        },
-                        x: {
-                            ticks: { color: textColor, font: { size: 10 }, maxTicksLimit: 6 },
-                            grid: { display: false }
-                        }
-                    }
-                }
+                html += `<div style="margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, rgba(66,133,244,0.1), rgba(52,168,83,0.1)); border-radius: 10px; border-left: 4px solid var(--primary-color);">
+                    <div style="font-size: 13px; font-weight: 600; color: var(--primary-color); margin-bottom: 10px;"><i class="fas fa-chart-line"></i> Month-over-Month Analysis</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div style="text-align: center; padding: 10px; background: var(--card-bg); border-radius: 8px;">
+                            <div style="font-size: 11px; color: var(--text-secondary);">${previous.month}</div>
+                            <div style="font-size: 20px; font-weight: 700; color: var(--text-color);">${previous.avgSys}/${previous.avgDia}</div>
+                            <div style="font-size: 10px; color: var(--text-secondary);">mmHg</div>
+                        </div>
+                        <div style="text-align: center; padding: 10px; background: var(--card-bg); border-radius: 8px;">
+                            <div style="font-size: 11px; color: var(--text-secondary);">${current.month}</div>
+                            <div style="font-size: 20px; font-weight: 700; color: var(--text-color);">${current.avgSys}/${current.avgDia}</div>
+                            <div style="font-size: 10px; color: var(--text-secondary);">mmHg</div>
+                        </div>
+                    </div>
+                    <div style="background: var(--card-bg); padding: 12px; border-radius: 8px; font-size: 12px;">
+                        <div style="font-weight: 600; margin-bottom: 8px; color: var(--text-color);">Quantitative Analysis:</div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Systolic Change:</span>
+                            <span style="font-weight: 600; color: ${sysDiff > 0 ? 'var(--danger-color)' : 'var(--secondary-color)'};">${sysDiff > 0 ? '+' : ''}${sysDiff} mmHg (${sysDiff > 0 ? '+' : ''}${sysPercent}%)</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Diastolic Change:</span>
+                            <span style="font-weight: 600; color: ${diaDiff > 0 ? 'var(--danger-color)' : 'var(--secondary-color)'};">${diaDiff > 0 ? '+' : ''}${diaDiff} mmHg (${diaDiff > 0 ? '+' : ''}${diaPercent}%)</span>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            // Monthly cards
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">';
+            monthlyAverages.forEach(month => {
+                const status = getBPStatus(month.avgSys, month.avgDia);
+                const colors = {'normal': '#34a853', 'high-normal': '#fbbc05', 'grade1': '#f57c00', 'grade2': '#ea4335', 'low': '#4285f4'};
+                const color = colors[status] || '#666';
+
+                html += `<div style="background: var(--card-bg); padding: 12px; border-radius: 10px; text-align: center; border-top: 3px solid ${color};">
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px;">${month.month}</div>
+                    <div style="font-size: 22px; font-weight: 700; color: var(--text-color); margin-bottom: 3px;">${month.avgSys}/${month.avgDia}</div>
+                    <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 8px;">mmHg average</div>
+                    <div style="font-size: 10px; padding: 3px 8px; background: ${color}20; color: ${color}; border-radius: 12px; display: inline-block;">${month.readings} readings</div>
+                </div>`;
             });
+            html += '</div>';
+
+            container.innerHTML = html;
         }
 
         function renderTimeDistribution(readings) {
