@@ -13,6 +13,10 @@
 
     <title>BP Tracker - Blood Pressure Monitor</title>
 
+    <link rel="manifest" href="./manifest.json">
+    <!-- Apple Touch Icon for iOS PWA -->
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <!-- jsPDF -->
@@ -72,7 +76,7 @@
             background: var(--bg-color);
             color: var(--text-color);
             height: 100%;
-            overflow: hidden; /* Prevent body scroll */
+            overflow: hidden;
         }
 
         body {
@@ -86,12 +90,11 @@
             user-select: none;
         }
 
-        /* APP CONTAINER - Mobile-first constrained like CashTrail */
         #app {
             display: flex;
             flex-direction: column;
             height: 100vh;
-            max-width: 480px; /* Mobile constraint like CashTrail */
+            max-width: 480px;
             margin: 0 auto;
             width: 100%;
             background: var(--bg-color);
@@ -99,7 +102,6 @@
             overflow: hidden;
         }
 
-        /* STICKY HEADER with backdrop blur - CashTrail style */
         header {
             position: sticky;
             top: 0;
@@ -112,9 +114,7 @@
             flex-shrink: 0;
         }
 
-        [data-theme="dark"] header {
-            background: rgba(31, 31, 31, 0.95);
-        }
+        [data-theme="dark"] header { background: rgba(31, 31, 31, 0.95); }
 
         .header-content {
             display: flex;
@@ -126,36 +126,12 @@
             width: 100%;
         }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            font-size: 18px;
-            font-weight: 500;
-            color: var(--primary-color);
-        }
-
+        .logo { display: flex; align-items: center; font-size: 18px; font-weight: 500; color: var(--primary-color); }
         .logo i { margin-right: 8px; font-size: 22px; }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 35px; height: 35px; border-radius: 50%; background-color: var(--primary-color); color: white; display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 14px; }
 
-        .user-avatar {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            background-color: var(--primary-color);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        /* SCROLLABLE MAIN CONTENT - Only this scrolls */
         .main-content {
             flex: 1;
             overflow-y: auto;
@@ -166,234 +142,57 @@
             overscroll-behavior-y: contain;
             padding-bottom: calc(20px + var(--safe-area-bottom));
         }
+        .main-content::-webkit-scrollbar { width: 0px; background: transparent; }
 
-        /* Hide scrollbar but keep functionality */
-        .main-content::-webkit-scrollbar {
-            width: 0px;
-            background: transparent;
-        }
-
-        /* TABS - Fixed below header */
-        .tabs {
-            display: flex;
-            overflow-x: auto;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 15px;
-            padding-bottom: 5px;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
-
+        .tabs { display: flex; overflow-x: auto; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; padding-bottom: 5px; scrollbar-width: none; -ms-overflow-style: none; }
         .tabs::-webkit-scrollbar { display: none; }
-
-        .tab {
-            padding: 12px 16px;
-            cursor: pointer;
-            font-weight: 500;
-            border-bottom: 2px solid transparent;
-            white-space: nowrap;
-            color: var(--text-color);
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
+        .tab { padding: 12px 16px; cursor: pointer; font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; color: var(--text-color); font-size: 14px; transition: all 0.2s; }
         .tab:active { opacity: 0.7; }
-
-        .tab.active {
-            color: var(--primary-color);
-            border-bottom: 2px solid var(--primary-color);
-        }
+        .tab.active { color: var(--primary-color); border-bottom: 2px solid var(--primary-color); }
 
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .card { background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 15px; margin-bottom: 12px; border: 1px solid var(--border-color); transition: transform 0.2s, box-shadow 0.2s; }
+        .card:active { transform: scale(0.98); box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; color: var(--text-color); font-weight: 500; }
 
-        /* CARDS - Native feel with touch feedback */
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            padding: 15px;
-            margin-bottom: 12px;
-            border: 1px solid var(--border-color);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .card:active {
-            transform: scale(0.98);
-            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border-color);
-            flex-wrap: wrap;
-            color: var(--text-color);
-            font-weight: 500;
-        }
-
-        /* BUTTONS - Touch optimized */
-        .btn {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            gap: 8px;
-            transition: all 0.2s;
-            -webkit-tap-highlight-color: rgba(0,0,0,0.1);
-            min-height: 44px; /* Touch target size */
-        }
-
+        .btn { padding: 12px 20px; border: none; border-radius: 10px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; gap: 8px; transition: all 0.2s; -webkit-tap-highlight-color: rgba(0,0,0,0.1); min-height: 44px; }
         .btn:active { transform: scale(0.96); opacity: 0.9; }
-
         .btn-primary { background-color: var(--primary-color); color: white; }
         .btn-secondary { background-color: var(--input-bg); color: var(--primary-color); border: 1px solid var(--primary-color); }
         .btn-danger { background-color: var(--danger-color); color: white; }
         .btn-success { background-color: var(--secondary-color); color: white; }
         .btn-warning { background-color: var(--warning-color); color: white; }
 
-        .theme-toggle-btn {
-            background: var(--input-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            transition: all 0.2s;
-        }
-
+        .theme-toggle-btn { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s; }
         .theme-toggle-btn:active { transform: scale(0.9); }
 
-        /* FORM ELEMENTS - Optimized for touch */
         .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; color: var(--text-color); }
+        .form-control { width: 100%; padding: 14px; border: 1px solid var(--border-color); border-radius: 10px; background-color: var(--input-bg); color: var(--text-color); font-size: 16px; transition: border-color 0.2s; -webkit-appearance: none; appearance: none; }
+        .form-control:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1); }
+        select.form-control { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; }
 
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            font-size: 14px;
-            color: var(--text-color);
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 14px;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            background-color: var(--input-bg);
-            color: var(--text-color);
-            font-size: 16px; /* Prevents zoom on iOS */
-            transition: border-color 0.2s;
-            -webkit-appearance: none;
-            appearance: none;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
-        }
-
-        select.form-control {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 14px center;
-            padding-right: 40px;
-        }
-
-        /* GRID */
         .grid { display: grid; grid-gap: 12px; }
         .grid-2 { grid-template-columns: 1fr; }
         .grid-3 { grid-template-columns: 1fr; }
+        @media (min-width: 400px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } .grid-3 { grid-template-columns: repeat(3, 1fr); } }
 
-        @media (min-width: 400px) {
-            .grid-2 { grid-template-columns: repeat(2, 1fr); }
-            .grid-3 { grid-template-columns: repeat(3, 1fr); }
-        }
-
-        /* STATS - CashTrail style hero cards */
-        .stat-label {
-            font-size: 11px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-        }
-
-        .stat-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--text-color);
-            font-variant-numeric: tabular-nums;
-        }
-
-        .stat-sub {
-            font-size: 12px;
-            margin-top: 5px;
-            display: flex;
-            justify-content: space-between;
-        }
-
+        .stat-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .stat-value { font-size: 28px; font-weight: 700; color: var(--text-color); font-variant-numeric: tabular-nums; }
+        .stat-sub { font-size: 12px; margin-top: 5px; display: flex; justify-content: space-between; }
         .stat-sub .min { color: var(--secondary-color); }
         .stat-sub .max { color: var(--danger-color); }
 
-        /* TABLE - Responsive */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 100%;
-        }
-
-        .table th, .table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 14px;
-        }
-
-        .table th {
-            font-weight: 600;
-            color: var(--text-color);
-            background: var(--bg-color);
-        }
-
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table { width: 100%; border-collapse: collapse; min-width: 100%; }
+        .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 14px; }
+        .table th { font-weight: 600; color: var(--text-color); background: var(--bg-color); }
         .table tr:active { background: var(--table-hover); }
 
-        /* BADGES */
-        .badge {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            display: inline-block;
-        }
-
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: inline-block; }
         .badge-normal { background-color: #e6f4ea; color: #1e8e3e; }
         .badge-high-normal, .badge-elevated { background-color: #fef7e0; color: #b06000; }
         .badge-grade1 { background-color: #ffe0b2; color: #e65100; }
@@ -406,275 +205,47 @@
         [data-theme="dark"] .badge-grade2 { background-color: rgba(234, 67, 53, 0.2); color: #f28b82; }
         [data-theme="dark"] .badge-low { background-color: rgba(25, 103, 210, 0.2); color: #8ab4f8; }
 
-        /* MODAL - Bottom sheet style like CashTrail */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.6);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            align-items: flex-end;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .modal.open {
-            display: flex;
-            opacity: 1;
-        }
-
-        .modal-content {
-            background-color: var(--modal-bg);
-            width: 100%;
-            max-width: 480px;
-            max-height: 90vh;
-            border-radius: 20px 20px 0 0;
-            transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .modal.open .modal-content {
-            transform: translateY(0);
-        }
-
-        .modal-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-        }
-
-        .modal-header h3 {
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .modal-body {
-            padding: 20px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            flex: 1;
-        }
-
-        .modal-footer {
-            padding: 15px 20px;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            flex-shrink: 0;
-        }
-
-        .close-modal {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border: none;
-            background: var(--input-bg);
-            color: var(--text-color);
-            cursor: pointer;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity 0.3s; }
+        .modal.open { display: flex; opacity: 1; }
+        .modal-content { background-color: var(--modal-bg); width: 100%; max-width: 480px; max-height: 90vh; border-radius: 20px 20px 0 0; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow: hidden; }
+        .modal.open .modal-content { transform: translateY(0); }
+        .modal-header { padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .modal-header h3 { font-size: 18px; font-weight: 600; }
+        .modal-body { padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; }
+        .modal-footer { padding: 15px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0; }
+        .close-modal { width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--input-bg); color: var(--text-color); cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
         .close-modal:active { transform: scale(0.9); background: var(--border-color); }
 
-        /* CALENDAR - Optimized */
-        .calendar {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 1px;
-            background-color: var(--border-color);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .calendar-header {
-            background-color: var(--table-hover);
-            padding: 10px;
-            text-align: center;
-            font-weight: 600;
-            font-size: 12px;
-            color: var(--text-color);
-        }
-
-        .calendar-day {
-            background-color: var(--card-bg);
-            min-height: 70px;
-            padding: 8px;
-            cursor: pointer;
-            position: relative;
-            transition: background 0.2s;
-        }
-
+        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background-color: var(--border-color); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+        .calendar-header { background-color: var(--table-hover); padding: 10px; text-align: center; font-weight: 600; font-size: 12px; color: var(--text-color); }
+        .calendar-day { background-color: var(--card-bg); min-height: 70px; padding: 8px; cursor: pointer; position: relative; transition: background 0.2s; }
         .calendar-day:active { background: var(--table-hover); }
+        .calendar-day.today { background-color: rgba(66, 133, 244, 0.1); font-weight: 600; }
+        .calendar-day.other-month { background-color: var(--table-hover); opacity: 0.5; }
+        .day-dot { height: 6px; width: 6px; border-radius: 50%; display: inline-block; margin: 1px; }
 
-        .calendar-day.today {
-            background-color: rgba(66, 133, 244, 0.1);
-            font-weight: 600;
-        }
+        .chart-wrapper { position: relative; height: 250px; width: 100%; }
 
-        .calendar-day.other-month {
-            background-color: var(--table-hover);
-            opacity: 0.5;
-        }
-
-        .day-dot {
-            height: 6px;
-            width: 6px;
-            border-radius: 50%;
-            display: inline-block;
-            margin: 1px;
-        }
-
-        /* CHART */
-        .chart-wrapper {
-            position: relative;
-            height: 250px;
-            width: 100%;
-        }
-
-        /* NOTIFICATION */
-        .notification {
-            position: fixed;
-            bottom: calc(20px + var(--safe-area-bottom));
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background-color: #323232;
-            color: white;
-            padding: 14px 24px;
-            border-radius: 50px;
-            z-index: 2000;
-            transition: transform 0.3s;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
+        .notification { position: fixed; bottom: calc(20px + var(--safe-area-bottom)); left: 50%; transform: translateX(-50%) translateY(100px); background-color: #323232; color: white; padding: 14px 24px; border-radius: 50px; z-index: 2000; transition: transform 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; }
         .notification.show { transform: translateX(-50%) translateY(0); }
 
-        /* EMPTY STATE */
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--empty-state-color);
-        }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--empty-state-color); }
+        .empty-state i { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
 
-        .empty-state i {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-
-        /* UTILITIES */
         .hidden { display: none !important; }
         .text-center { text-align: center; }
         .mt-md { margin-top: 15px; }
         .mb-md { margin-bottom: 15px; }
 
-        /* Desktop constraint */
-        @media (min-width: 481px) {
-            #app {
-                border-left: 1px solid var(--border-color);
-                border-right: 1px solid var(--border-color);
-            }
-        }
+        .stat-card { background: var(--card-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; }
+        .time-slot-card { flex: 1; min-width: 100px; padding: 12px; border-radius: 10px; text-align: center; }
+        .analytics-section { margin-bottom: 20px; }
+        .analytics-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-color); display: flex; align-items: center; gap: 8px; }
 
-        /* UPDATE BANNER */
-        .update-banner {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: var(--primary-color);
-            color: white;
-            padding: 12px 15px;
-            z-index: 3000;
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-
-        .update-banner.show {
-            display: flex;
-        }
-
-        .update-banner-text {
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .update-banner-btn {
-            background: white;
-            color: var(--primary-color);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .stat-card {
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            text-align: center;
-        }
-
-        .time-slot-card {
-            flex: 1;
-            min-width: 100px;
-            padding: 12px;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .analytics-section {
-            margin-bottom: 20px;
-        }
-
-        .analytics-title {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: var(--text-color);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        @media (min-width: 481px) { #app { border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); } }
     </style>
-    <link rel="manifest" href="./manifest.json">
-    <base target="_blank">
 </head>
 <body>
-    <!-- UPDATE BANNER -->
-    <div id="update-banner" class="update-banner">
-        <span class="update-banner-text"><i class="fas fa-sync-alt"></i> New version available</span>
-        <button id="update-btn" class="update-banner-btn">Update Now</button>
-    </div>
-
     <div id="app">
         <header>
             <div class="header-content">
@@ -799,7 +370,6 @@
             </div>
 
             <div id="reports-tab" class="tab-content">
-                <!-- Advanced Analytics Dashboard -->
                 <div class="card">
                     <div class="card-header">
                         <span><i class="fas fa-chart-pie"></i> Advanced Analytics</span>
@@ -812,8 +382,6 @@
                             <option value="custom">Custom Range...</option>
                         </select>
                     </div>
-
-                    <!-- Custom Date Range (hidden by default) -->
                     <div id="analytics-custom-range" class="grid grid-2 hidden" style="margin-bottom: 15px; padding: 15px; background: var(--bg-primary); border-radius: 8px;">
                         <div class="form-group" style="margin-bottom: 0;">
                             <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">From</label>
@@ -824,8 +392,6 @@
                             <input type="date" id="analytics-end-date" class="form-control" style="padding: 8px;" onchange="updateAnalytics()">
                         </div>
                     </div>
-
-                    <!-- Key Metrics -->
                     <div class="grid grid-3" style="margin-bottom: 15px;">
                         <div class="stat-card" style="background: linear-gradient(135deg, rgba(66,133,244,0.1), rgba(66,133,244,0.05));">
                             <div class="stat-label" style="color: var(--primary-color);">Average BP</div>
@@ -843,8 +409,6 @@
                             <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Grade 1 & 2</div>
                         </div>
                     </div>
-
-                    <!-- Status Distribution Chart -->
                     <div style="margin-bottom: 20px;">
                         <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--text-color);">
                             <i class="fas fa-chart-donut"></i> BP Classification Distribution
@@ -853,34 +417,23 @@
                             <div style="flex: 1; max-width: 200px;">
                                 <canvas id="statusDistributionChart" width="200" height="200"></canvas>
                             </div>
-                            <div id="status-legend" style="flex: 1; font-size: 12px;">
-                                <!-- Legend items will be inserted here -->
-                            </div>
+                            <div id="status-legend" style="flex: 1; font-size: 12px;"></div>
                         </div>
                     </div>
-
-                    <!-- Monthly Comparison -->
                     <div style="margin-bottom: 20px;">
                         <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--text-color);">
                             <i class="fas fa-chart-bar"></i> Monthly Comparison & Analysis
                         </div>
-                        <div id="monthly-comparison-container" style="background: var(--bg-primary); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color);">
-                            <!-- Monthly comparison cards will be inserted here -->
-                        </div>
+                        <div id="monthly-comparison-container" style="background: var(--bg-primary); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color);"></div>
                     </div>
-
-                    <!-- Time of Day Analysis -->
                     <div style="margin-bottom: 15px;">
                         <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--text-color);">
                             <i class="fas fa-clock"></i> Reading Time Distribution
                         </div>
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;" id="time-distribution">
-                            <!-- Time slots will be inserted here -->
-                        </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;" id="time-distribution"></div>
                     </div>
                 </div>
 
-                <!-- PDF Export Section -->
                 <div class="card">
                     <div class="card-header">
                         <span><i class="fas fa-file-medical-alt"></i> Generate Medical Report</span>
@@ -934,7 +487,7 @@
                 <div class="card">
                     <div class="card-header">About</div>
                     <p style="color: var(--empty-state-color); font-size: 14px;">
-                        BP Tracker v2.5<br>
+                        BP Tracker v2.6<br>
                         Native App Experience<br>
                         Works Offline
                     </p>
@@ -1037,112 +590,57 @@
     </div>
 
     <script>
-        // ==========================================
-        // NATIVE APP PREVENTION SCRIPTS - From CashTrail
-        // These prevent pinch zoom, double-tap zoom, and make it feel like a native app
-        // ==========================================
-
-        // Prevent zoom on double-tap
+        // NATIVE APP PREVENTION SCRIPTS
         let lastTouchEnd = 0;
         document.addEventListener('touchend', function(e) {
             const now = Date.now();
-            if (now - lastTouchEnd <= 300) {
-                e.preventDefault();
-            }
+            if (now - lastTouchEnd <= 300) { e.preventDefault(); }
             lastTouchEnd = now;
         }, { passive: false });
 
-        // Prevent pinch zoom
         document.addEventListener('touchmove', function(e) {
-            if (e.touches.length > 1) {
-                e.preventDefault();
-            }
+            if (e.touches.length > 1) { e.preventDefault(); }
         }, { passive: false });
 
-        // Prevent double-tap zoom on buttons
         document.addEventListener('touchstart', function(e) {
-            if (e.touches.length > 1) {
-                e.preventDefault();
-            }
+            if (e.touches.length > 1) { e.preventDefault(); }
         }, { passive: false });
 
-        // ==========================================
-        // PWA SERVICE WORKER UPDATE HANDLING
-        // This ensures updates are detected and applied
-        // ==========================================
-        
-        let newServiceWorker = null;
-
+        // SERVICE WORKER REGISTRATION (With Update Logic)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // CRITICAL: Register with updateViaCache: 'none' to prevent caching the SW itself
-                navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
-                    .then(reg => {
-                        console.log('Service Worker Registered');
-                        
-                        // Check for updates immediately
-                        reg.update();
-                        
-                        // Listen for new service workers
-                        reg.addEventListener('updatefound', () => {
-                            newServiceWorker = reg.installing;
-                            
-                            newServiceWorker.addEventListener('statechange', () => {
-                                // When the new SW is installed and waiting
-                                if (newServiceWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    console.log('New version available');
-                                    showUpdateBanner();
-                                }
-                            });
+                navigator.serviceWorker.register('./sw.js').then(reg => {
+                    console.log('Service Worker Registered');
+                    
+                    // Listen for updates to the Service Worker
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // Force update immediately
+                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                            }
                         });
-                    })
-                    .catch(err => console.log('Service Worker Failed', err));
-
-                // Listen for controller changes (when new SW activates)
+                    });
+                }).catch(err => console.log('Service Worker Failed', err));
+                
+                // Automatically reload the page when the service worker takes over
+                let refreshing;
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    console.log('New service worker activated, reloading...');
+                    if (refreshing) return;
+                    refreshing = true;
                     window.location.reload();
                 });
             });
         }
 
-        // Show update banner
-        function showUpdateBanner() {
-            const banner = document.getElementById('update-banner');
-            banner.classList.add('show');
-        }
-
-        // Handle update button click
-        document.getElementById('update-btn').addEventListener('click', () => {
-            if (newServiceWorker) {
-                // Tell the new SW to skip waiting
-                newServiceWorker.postMessage({ type: 'SKIP_WAITING' });
-            } else {
-                // Fallback: force reload
-                window.location.reload(true);
-            }
-        });
-
-        // ==========================================
         // APP LOGIC
-        // ==========================================
-
         function safeLoad(key) { 
-            try { 
-                const d = JSON.parse(localStorage.getItem(key)); 
-                return Array.isArray(d) ? d : []; 
-            } catch(e) { 
-                return []; 
-            } 
+            try { const d = JSON.parse(localStorage.getItem(key)); return Array.isArray(d) ? d : []; } catch(e) { return []; } 
         }
 
         function safeLoadObj(key, def) { 
-            try { 
-                const d = JSON.parse(localStorage.getItem(key)); 
-                return d && typeof d === 'object' && !Array.isArray(d) ? d : def; 
-            } catch(e) { 
-                return def; 
-            } 
+            try { const d = JSON.parse(localStorage.getItem(key)); return d && typeof d === 'object' && !Array.isArray(d) ? d : def; } catch(e) { return def; } 
         }
 
         const db = { 
@@ -1187,7 +685,6 @@
         });
 
         function setupEventListeners() {
-            // Tabs
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1200,18 +697,14 @@
                 });
             });
 
-            // Close modals
             document.querySelectorAll('.close-modal').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const modal = e.target.closest('.modal');
                     modal.classList.remove('open');
-
-                    // Reset edit mode if closing reading modal
                     if(modal.id === 'reading-modal') {
                         delete modal.dataset.editId;
                         document.querySelector('#reading-modal .modal-header h3').textContent = 'Add Reading';
                         document.getElementById('save-reading').textContent = 'Save Reading';
-                        // Clear form
                         document.getElementById('r-sys').value = '';
                         document.getElementById('r-dia').value = '';
                         document.getElementById('r-pulse').value = '';
@@ -1221,16 +714,12 @@
                 });
             });
 
-            // Close modal on backdrop click (CashTrail style)
             document.querySelectorAll('.modal').forEach(modal => {
                 modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        modal.classList.remove('open');
-                    }
+                    if (e.target === modal) { modal.classList.remove('open'); }
                 });
             });
 
-            // Buttons
             document.getElementById('add-patient-btn').addEventListener('click', () => {
                 document.getElementById('p-name').value = '';
                 document.getElementById('patient-modal').classList.add('open');
@@ -1250,9 +739,7 @@
             document.getElementById('next-month').addEventListener('click', () => changeMonth(1));
             document.getElementById('generate-pdf-btn').addEventListener('click', generatePDF);
             document.getElementById('export-json-btn').addEventListener('click', exportJSON);
-            document.getElementById('import-json-btn').addEventListener('click', () => {
-                document.getElementById('import-file-input').click();
-            });
+            document.getElementById('import-json-btn').addEventListener('click', () => { document.getElementById('import-file-input').click(); });
             document.getElementById('import-file-input').addEventListener('change', importJSON);
             document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
         }
@@ -1286,13 +773,7 @@
             const name = document.getElementById('p-name').value.trim();
             if(!name) return showNotification('Name required', 'error');
 
-            const p = {
-                id: generateId(),
-                name: name,
-                age: document.getElementById('p-age').value,
-                gender: document.getElementById('p-gender').value
-            };
-
+            const p = { id: generateId(), name: name, age: document.getElementById('p-age').value, gender: document.getElementById('p-gender').value };
             db.patients.push(p);
             saveDB();
             loadPatients();
@@ -1308,7 +789,6 @@
 
             const p = db.patients.find(x => x.id === id);
             if(p) {
-                document.getElementById('user-name').textContent = p.name;
                 document.getElementById('user-avatar').textContent = p.name.charAt(0).toUpperCase();
                 updateDashboard();
                 renderReadingsTable();
@@ -1317,7 +797,6 @@
 
         function saveReading() {
             if(!currentPatientId) return;
-
             const editId = document.getElementById('reading-modal').dataset.editId;
 
             const r = {
@@ -1335,18 +814,15 @@
             if(!r.date || !r.sys || !r.dia) return showNotification('Fill required fields', 'error');
 
             if(editId) {
-                // Update existing reading
                 const idx = db.readings.findIndex(reading => reading.id === editId);
                 if(idx !== -1) {
                     db.readings[idx] = { ...db.readings[idx], ...r };
                     showNotification('Reading updated successfully');
                 }
-                // Clear edit ID
                 delete document.getElementById('reading-modal').dataset.editId;
                 document.querySelector('#reading-modal .modal-header h3').textContent = 'Add Reading';
                 document.getElementById('save-reading').textContent = 'Save Reading';
             } else {
-                // Add new reading
                 r.id = generateId();
                 r.timestamp = new Date().getTime();
                 r.createdAt = new Date().getTime();
@@ -1356,14 +832,12 @@
             }
 
             saveDB();
-
             document.getElementById('reading-modal').classList.remove('open');
             document.getElementById('r-sys').value = '';
             document.getElementById('r-dia').value = '';
             document.getElementById('r-pulse').value = '';
             document.getElementById('r-weight').value = '';
             document.getElementById('r-notes').value = '';
-
             updateDashboard();
             renderReadingsTable();
         }
@@ -1377,7 +851,6 @@
         }
 
         function getStatusLabel(s) {
-            // Handle both 'elevated' and 'high-normal' for backward compatibility
             const status = s === 'elevated' ? 'high-normal' : s;
             switch(status) {
                 case 'grade2': return 'Grade 2 HTN';
@@ -1390,12 +863,7 @@
 
         function editReading(id) {
             const reading = db.readings.find(r => r.id === id);
-            if(!reading) {
-                showNotification('Reading not found', 'error');
-                return;
-            }
-
-            // Populate the edit form
+            if(!reading) return showNotification('Reading not found', 'error');
             document.getElementById('r-date').value = reading.date;
             document.getElementById('r-time').value = reading.time;
             document.getElementById('r-sys').value = reading.sys;
@@ -1403,15 +871,9 @@
             document.getElementById('r-pulse').value = reading.pulse || '';
             document.getElementById('r-weight').value = reading.weight || '';
             document.getElementById('r-notes').value = reading.notes || '';
-
-            // Store the ID being edited
             document.getElementById('reading-modal').dataset.editId = id;
-
-            // Update modal title and button
             document.querySelector('#reading-modal .modal-header h3').textContent = 'Edit Reading';
             document.getElementById('save-reading').textContent = 'Update Reading';
-
-            // Show modal
             document.getElementById('reading-modal').classList.add('open');
         }
 
@@ -1427,7 +889,6 @@
         function renderReadingsTable() {
             const tbody = document.getElementById('readings-table-body');
             tbody.innerHTML = '';
-
             if (!Array.isArray(db.readings)) db.readings = [];
 
             let f = db.readings.filter(r => r.patientId === currentPatientId);
@@ -1436,16 +897,8 @@
             const today = new Date().toISOString().split('T')[0];
 
             if(ft === 'today') f = f.filter(r => r.date === today);
-            if(ft === 'week') {
-                const d = new Date();
-                d.setDate(d.getDate() - 7);
-                f = f.filter(r => new Date(r.date) >= d);
-            }
-            if(ft === 'month') {
-                const d = new Date();
-                d.setMonth(d.getMonth() - 1);
-                f = f.filter(r => new Date(r.date) >= d);
-            }
+            if(ft === 'week') { const d = new Date(); d.setDate(d.getDate() - 7); f = f.filter(r => new Date(r.date) >= d); }
+            if(ft === 'month') { const d = new Date(); d.setMonth(d.getMonth() - 1); f = f.filter(r => new Date(r.date) >= d); }
             if(st) f = f.filter(r => r.notes && r.notes.toLowerCase().includes(st));
 
             f.sort((a,b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
@@ -1464,12 +917,8 @@
                         <td><span class="badge badge-${r.status}">${getStatusLabel(r.status)}</span></td>
                         <td>
                             <div style="display: flex; gap: 5px;">
-                                <button class="btn btn-secondary" style="padding:6px 10px; min-height:auto; font-size: 12px;" onclick="editReading('${r.id}')" title="Edit Reading">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-danger" style="padding:6px 10px; min-height:auto; font-size: 12px;" onclick="deleteReading('${r.id}')" title="Delete Reading">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <button class="btn btn-secondary" style="padding:6px 10px; min-height:auto; font-size: 12px;" onclick="editReading('${r.id}')" title="Edit Reading"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-danger" style="padding:6px 10px; min-height:auto; font-size: 12px;" onclick="deleteReading('${r.id}')" title="Delete Reading"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
                     `;
@@ -1483,12 +932,8 @@
             const d = reads.map(r => r.dia);
             const p = reads.map(r => r.pulse || 0);
             return {
-                minSys: Math.min(...s),
-                maxSys: Math.max(...s),
-                avgSys: Math.round(s.reduce((a,b) => a+b, 0) / s.length),
-                minDia: Math.min(...d),
-                maxDia: Math.max(...d),
-                avgDia: Math.round(d.reduce((a,b) => a+b, 0) / d.length),
+                minSys: Math.min(...s), maxSys: Math.max(...s), avgSys: Math.round(s.reduce((a,b) => a+b, 0) / s.length),
+                minDia: Math.min(...d), maxDia: Math.max(...d), avgDia: Math.round(d.reduce((a,b) => a+b, 0) / d.length),
                 avgPulse: Math.round(p.reduce((a,b) => a+b, 0) / p.length)
             };
         }
@@ -1500,22 +945,16 @@
             if(pr.length > 0) {
                 pr.sort((a,b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
                 const l = pr[0];
-
                 document.getElementById('latest-reading-container').innerHTML = `
                     <div style="text-align:center;">
                         <div style="font-size:42px; font-weight:700; font-variant-numeric: tabular-nums; line-height:1;">${l.sys}/${l.dia}</div>
                         <div style="color:var(--empty-state-color); margin-top:8px; font-size:14px;">mmHg</div>
-                        <div style="margin-top:12px;">
-                            <span class="badge badge-${l.status}">${getStatusLabel(l.status)}</span>
-                        </div>
-                        <div style="margin-top:8px; font-size:12px; color:var(--empty-state-color);">
-                            ${l.date} at ${l.time}
-                        </div>
+                        <div style="margin-top:12px;"><span class="badge badge-${l.status}">${getStatusLabel(l.status)}</span></div>
+                        <div style="margin-top:8px; font-size:12px; color:var(--empty-state-color);">${l.date} at ${l.time}</div>
                     </div>
                 `;
 
-                const d30 = new Date();
-                d30.setDate(d30.getDate() - 30);
+                const d30 = new Date(); d30.setDate(d30.getDate() - 30);
                 const rec = pr.filter(r => new Date(r.date) >= d30);
 
                 if(rec.length > 0) {
@@ -1528,9 +967,7 @@
                                 <span class="min"><i class="fas fa-arrow-down"></i> ${s.minSys}/${s.minDia}</span>
                                 <span class="max"><i class="fas fa-arrow-up"></i> ${s.maxSys}/${s.maxDia}</span>
                             </div>
-                            <div style="margin-top:8px; font-size:12px; color:var(--empty-state-color);">
-                                Based on ${rec.length} readings
-                            </div>
+                            <div style="margin-top:8px; font-size:12px; color:var(--empty-state-color);">Based on ${rec.length} readings</div>
                         </div>
                     `;
 
@@ -1541,65 +978,33 @@
                     if(st === 'grade2') msg = "Grade 2 HTN";
                     if(st === 'low') msg = "Low BP";
 
-                    const colorClass = st === 'normal' ? 'var(--secondary-color)' : 
-                                      st === 'low' ? 'var(--primary-color)' :
-                                      st === 'high-normal' ? 'var(--warning-color)' :
-                                      st === 'grade1' ? 'var(--orange-color)' : 'var(--danger-color)';
-
+                    const colorClass = st === 'normal' ? 'var(--secondary-color)' : st === 'low' ? 'var(--primary-color)' : st === 'high-normal' ? 'var(--warning-color)' : st === 'grade1' ? 'var(--orange-color)' : 'var(--danger-color)';
                     document.getElementById('bp-status-container').innerHTML = `
                         <div style="text-align:center;">
                             <div style="font-size:24px; font-weight:700; color:${colorClass};">${msg}</div>
-                            <div style="margin-top:8px; font-size:12px; color:var(--empty-state-color);">
-                                ISH Classification
-                            </div>
+                            <div style="margin-top:8px; font-size:12px; color:var(--empty-state-color);">ISH Classification</div>
                         </div>
                     `;
                 } else {
-                    document.getElementById('average-reading-container').innerHTML = `
-                        <div class="empty-state" style="padding:20px;">
-                            <i class="fas fa-chart-line" style="font-size:32px;"></i>
-                            <div style="margin-top:8px;">No 30-day data</div>
-                        </div>
-                    `;
+                    document.getElementById('average-reading-container').innerHTML = `<div class="empty-state" style="padding:20px;"><i class="fas fa-chart-line" style="font-size:32px;"></i><div style="margin-top:8px;">No 30-day data</div></div>`;
                 }
             } else {
-                document.getElementById('latest-reading-container').innerHTML = `
-                    <div class="empty-state" style="padding:20px;">
-                        <i class="fas fa-heartbeat" style="font-size:32px;"></i>
-                        <div style="margin-top:8px;">No readings yet</div>
-                    </div>
-                `;
-                document.getElementById('average-reading-container').innerHTML = `
-                    <div class="empty-state" style="padding:20px;">
-                        <i class="fas fa-chart-bar" style="font-size:32px;"></i>
-                        <div style="margin-top:8px;">No data available</div>
-                    </div>
-                `;
-                document.getElementById('bp-status-container').innerHTML = `
-                    <div class="empty-state" style="padding:20px;">
-                        <i class="fas fa-stethoscope" style="font-size:32px;"></i>
-                        <div style="margin-top:8px;">Add a reading to see status</div>
-                    </div>
-                `;
+                document.getElementById('latest-reading-container').innerHTML = `<div class="empty-state" style="padding:20px;"><i class="fas fa-heartbeat" style="font-size:32px;"></i><div style="margin-top:8px;">No readings yet</div></div>`;
+                document.getElementById('average-reading-container').innerHTML = `<div class="empty-state" style="padding:20px;"><i class="fas fa-chart-bar" style="font-size:32px;"></i><div style="margin-top:8px;">No data available</div></div>`;
+                document.getElementById('bp-status-container').innerHTML = `<div class="empty-state" style="padding:20px;"><i class="fas fa-stethoscope" style="font-size:32px;"></i><div style="margin-top:8px;">Add a reading to see status</div></div>`;
             }
-
             updateChart(pr);
         }
 
         function updateChart(reads) {
             const ctx = document.getElementById('bpTrendChart').getContext('2d');
             const days = parseInt(document.getElementById('trend-period').value);
-            const cut = new Date();
-            cut.setDate(cut.getDate() - days);
+            const cut = new Date(); cut.setDate(cut.getDate() - days);
 
             const data = reads.filter(r => new Date(r.date) >= cut).sort((a,b) => new Date(a.date) - new Date(b.date));
 
             if(chartInstance) chartInstance.destroy();
-
-            if(data.length === 0) {
-                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                return;
-            }
+            if(data.length === 0) { ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); return; }
 
             const isDark = db.settings.theme === 'dark';
             const tc = isDark ? '#e8eaed' : '#5f6368';
@@ -1610,53 +1015,14 @@
                 data: {
                     labels: data.map(r => r.date.slice(5)),
                     datasets: [
-                        {
-                            label: 'Systolic',
-                            data: data.map(r => r.sys),
-                            borderColor: '#ea4335',
-                            backgroundColor: 'rgba(234, 67, 53, 0.1)',
-                            tension: 0.3,
-                            fill: false
-                        },
-                        {
-                            label: 'Diastolic',
-                            data: data.map(r => r.dia),
-                            borderColor: '#4285f4',
-                            backgroundColor: 'rgba(66, 133, 244, 0.1)',
-                            tension: 0.3,
-                            fill: false
-                        }
+                        { label: 'Systolic', data: data.map(r => r.sys), borderColor: '#ea4335', backgroundColor: 'rgba(234, 67, 53, 0.1)', tension: 0.3, fill: false },
+                        { label: 'Diastolic', data: data.map(r => r.dia), borderColor: '#4285f4', backgroundColor: 'rgba(66, 133, 244, 0.1)', tension: 0.3, fill: false }
                     ]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    },
-                    plugins: {
-                        legend: {
-                            labels: { color: tc, usePointStyle: true }
-                        },
-                        tooltip: {
-                            backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
-                            titleColor: tc,
-                            bodyColor: tc,
-                            borderColor: gc,
-                            borderWidth: 1
-                        }
-                    },
-                    scales: {
-                        y: {
-                            ticks: { color: tc },
-                            grid: { color: gc }
-                        },
-                        x: {
-                            ticks: { color: tc, maxTicksLimit: 7 },
-                            grid: { display: false }
-                        }
-                    }
+                    responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
+                    plugins: { legend: { labels: { color: tc, usePointStyle: true } }, tooltip: { backgroundColor: isDark ? '#1f1f1f' : '#ffffff', titleColor: tc, bodyColor: tc, borderColor: gc, borderWidth: 1 } },
+                    scales: { y: { ticks: { color: tc }, grid: { color: gc } }, x: { ticks: { color: tc, maxTicksLimit: 7 }, grid: { display: false } } }
                 }
             });
         }
@@ -1703,21 +1069,14 @@
                         html += `<div class="day-dot" style="background-color:${c};"></div>`;
                     });
                     html += `</div>`;
-                    d.onclick = () => {
-                        const details = dr.map(r => `${r.time}: ${r.sys}/${r.dia} ${getStatusLabel(r.status)}`).join('\n');
-                        showNotification(`${dr.length} reading(s) on ${ds}`);
-                    };
+                    d.onclick = () => { showNotification(`${dr.length} reading(s) on ${ds}`); };
                 }
-
                 d.innerHTML = html;
                 cd.appendChild(d);
             }
         }
 
-        function changeMonth(d) {
-            calDate.setMonth(calDate.getMonth() + d);
-            renderCalendar();
-        }
+        function changeMonth(d) { calDate.setMonth(calDate.getMonth() + d); renderCalendar(); }
 
         function exportJSON() {
             const a = document.createElement('a');
@@ -1732,127 +1091,50 @@
         function importJSON(e) {
             const f = e.target.files[0];
             if(!f) return;
-
             const r = new FileReader();
             r.onload = (ev) => {
                 try {
                     const imported = JSON.parse(ev.target.result);
+                    if (!imported.patients || !Array.isArray(imported.patients)) throw new Error('Invalid backup: missing patients array');
+                    if (!imported.readings || !Array.isArray(imported.readings)) throw new Error('Invalid backup: missing readings array');
 
-                    // Validate basic structure
-                    if (!imported.patients || !Array.isArray(imported.patients)) {
-                        throw new Error('Invalid backup: missing patients array');
-                    }
-                    if (!imported.readings || !Array.isArray(imported.readings)) {
-                        throw new Error('Invalid backup: missing readings array');
-                    }
+                    if (!confirm(`Restore ${imported.readings.length} readings for ${imported.patients.length} patients?\nThis will REPLACE all current data.`)) return;
 
-                    // Confirm with user
-                    const readingCount = imported.readings.length;
-                    const patientCount = imported.patients.length;
-
-                    if (!confirm(`Restore ${readingCount} readings for ${patientCount} patients?\nThis will REPLACE all current data.`)) {
-                        return;
-                    }
-
-                    // Process and correct data
                     const correctedReadings = imported.readings.map(r => {
-                        // Ensure all required fields exist
-                        const sys = parseInt(r.sys) || 0;
-                        const dia = parseInt(r.dia) || 0;
-
-                        // Recalculate status using ISH 2020 standard
-                        let status = r.status;
+                        const sys = parseInt(r.sys) || 0; const dia = parseInt(r.dia) || 0;
+                        let status = 'normal';
                         if (sys >= 160 || dia >= 100) status = 'grade2';
                         else if (sys >= 140 || dia >= 90) status = 'grade1';
                         else if (sys >= 130 || dia >= 85) status = 'high-normal';
                         else if (sys < 90 && dia < 60) status = 'low';
-                        else status = 'normal';
 
                         return {
-                            id: r.id || generateId(),
-                            patientId: r.patientId,
-                            date: r.date,
-                            time: r.time,
-                            sys: sys,
-                            dia: dia,
-                            pulse: r.pulse ? parseInt(r.pulse) : null,
-                            weight: r.weight || '',
-                            notes: r.notes || '',
-                            status: status,
-                            timestamp: r.timestamp || new Date(r.date + 'T' + r.time).getTime(),
-                            createdAt: r.createdAt || r.timestamp || new Date().getTime(),
-                            type: 'reading'
+                            id: r.id || generateId(), patientId: r.patientId, date: r.date, time: r.time, sys: sys, dia: dia,
+                            pulse: r.pulse ? parseInt(r.pulse) : null, weight: r.weight || '', notes: r.notes || '', status: status,
+                            timestamp: r.timestamp || new Date(r.date + 'T' + r.time).getTime(), createdAt: r.createdAt || new Date().getTime(), type: 'reading'
                         };
                     });
 
-                    // Update database
-                    db.patients = imported.patients.map(p => ({
-                        ...p,
-                        type: 'patient',
-                        createdAt: p.createdAt || new Date().getTime()
-                    }));
-
+                    db.patients = imported.patients.map(p => ({ ...p, type: 'patient', createdAt: p.createdAt || new Date().getTime() }));
                     db.readings = correctedReadings;
-
-                    // Import settings if available
-                    if (imported.settings) {
-                        db.settings = { ...db.settings, ...imported.settings };
-                    }
+                    if (imported.settings) db.settings = { ...db.settings, ...imported.settings };
 
                     saveDB();
-
-                    // Safely reload patients dropdown
                     loadPatients();
-
-                    // Safely switch to first patient with null checks
-                    if (db.patients.length > 0) {
-                        const firstPatient = db.patients[0];
-                        currentPatientId = firstPatient.id;
-                        localStorage.setItem('currentPatientId', firstPatient.id);
-
-                        // Safely update patient select
-                        const patientSelect = document.getElementById('patient-select');
-                        if (patientSelect) {
-                            patientSelect.value = firstPatient.id;
-                        }
-
-                        // Safely update user info with null checks
-                        const userNameEl = document.getElementById('user-name');
-                        const userAvatarEl = document.getElementById('user-avatar');
-
-                        if (userNameEl) {
-                            userNameEl.textContent = firstPatient.name;
-                        }
-                        if (userAvatarEl) {
-                            userAvatarEl.textContent = firstPatient.name.charAt(0).toUpperCase();
-                        }
-
-                        // Update dashboard and readings
-                        updateDashboard();
-                        renderReadingsTable();
-                    }
-
+                    if (db.patients.length > 0) { switchPatient(db.patients[0].id); }
                     showNotification(`Restored ${correctedReadings.length} readings successfully`);
-
-                    // Reload to apply theme and data
                     setTimeout(() => location.reload(), 1500);
-
                 } catch (err) {
-                    console.error('Import error:', err);
                     showNotification('Import failed: ' + err.message, 'error');
                 }
             };
-            r.onerror = () => showNotification('Failed to read file', 'error');
             r.readAsText(f);
-
-            // Reset file input
             e.target.value = '';
         }
 
         function generatePDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-
             const p = db.patients.find(x => x.id === currentPatientId);
             const s = document.getElementById('report-start').value;
             const e = document.getElementById('report-end').value;
@@ -1870,7 +1152,6 @@
             const stats = calculateStats(readings);
             const statusCounts = calculateStatusDistribution(readings);
 
-            // Header with blue background
             doc.setFillColor(66, 133, 244);
             doc.rect(0, 0, 210, 40, 'F');
             doc.setTextColor(255, 255, 255);
@@ -1879,7 +1160,6 @@
             doc.setFontSize(10);
             doc.text(`Generated on ${new Date().toLocaleDateString('en-US', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}`, 15, 32);
 
-            // Patient Info Section
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(14);
             doc.setFont(undefined, 'bold');
@@ -1892,303 +1172,129 @@
 
             let yPos = 85;
 
-            // Summary Statistics Box
             if(includeSummary) {
                 doc.setDrawColor(66, 133, 244);
                 doc.setLineWidth(0.5);
                 doc.roundedRect(10, yPos - 5, 190, 50, 5, 5, 'S');
 
-                doc.setFontSize(12);
-                doc.setTextColor(66, 133, 244);
-                doc.setFont(undefined, 'bold');
-                doc.text("Summary Statistics", 15, yPos + 5);
-                doc.setFont(undefined, 'normal');
+                doc.setFontSize(12); doc.setTextColor(66, 133, 244); doc.setFont(undefined, 'bold'); doc.text("Summary Statistics", 15, yPos + 5);
+                doc.setFont(undefined, 'normal'); doc.setTextColor(0, 0, 0); doc.setFontSize(10);
 
-                doc.setTextColor(0, 0, 0);
-                doc.setFontSize(10);
+                doc.text(`Average BP:`, 20, yPos + 18); doc.setFont(undefined, 'bold'); doc.text(`${stats.avgSys}/${stats.avgDia} mmHg`, 50, yPos + 18); doc.setFont(undefined, 'normal');
+                doc.text(`Systolic Range:`, 20, yPos + 28); doc.text(`${stats.minSys} - ${stats.maxSys} mmHg`, 55, yPos + 28);
+                doc.text(`Diastolic Range:`, 20, yPos + 38); doc.text(`${stats.minDia} - ${stats.maxDia} mmHg`, 58, yPos + 38);
 
-                // Left column
-                doc.text(`Average BP:`, 20, yPos + 18);
-                doc.setFont(undefined, 'bold');
-                doc.text(`${stats.avgSys}/${stats.avgDia} mmHg`, 50, yPos + 18);
-                doc.setFont(undefined, 'normal');
+                doc.text(`Average Pulse:`, 110, yPos + 18); doc.setFont(undefined, 'bold'); doc.text(`${stats.avgPulse || '-'} bpm`, 145, yPos + 18); doc.setFont(undefined, 'normal');
 
-                doc.text(`Systolic Range:`, 20, yPos + 28);
-                doc.text(`${stats.minSys} - ${stats.maxSys} mmHg`, 55, yPos + 28);
-
-                doc.text(`Diastolic Range:`, 20, yPos + 38);
-                doc.text(`${stats.minDia} - ${stats.maxDia} mmHg`, 58, yPos + 38);
-
-                // Right column
-                doc.text(`Average Pulse:`, 110, yPos + 18);
-                doc.setFont(undefined, 'bold');
-                doc.text(`${stats.avgPulse || '-'} bpm`, 145, yPos + 18);
-                doc.setFont(undefined, 'normal');
-
-                const classification = getBPStatus(stats.avgSys, stats.avgDia);
                 const statusLabels = {'normal': 'Normal', 'high-normal': 'High-Normal', 'grade1': 'Grade 1 HTN', 'grade2': 'Grade 2 HTN', 'low': 'Low BP'};
-                doc.text(`Overall Status:`, 110, yPos + 28);
-                doc.setFont(undefined, 'bold');
-                doc.text(statusLabels[classification], 145, yPos + 28);
-                doc.setFont(undefined, 'normal');
-
+                doc.text(`Overall Status:`, 110, yPos + 28); doc.setFont(undefined, 'bold'); doc.text(statusLabels[getBPStatus(stats.avgSys, stats.avgDia)], 145, yPos + 28); doc.setFont(undefined, 'normal');
                 yPos += 55;
             }
 
-            // BP Classification Distribution
-            doc.setFontSize(12);
-            doc.setTextColor(66, 133, 244);
-            doc.setFont(undefined, 'bold');
-            doc.text("BP Classification Distribution", 15, yPos);
-            doc.setFont(undefined, 'normal');
-            yPos += 12;
+            doc.setFontSize(12); doc.setTextColor(66, 133, 244); doc.setFont(undefined, 'bold'); doc.text("BP Classification Distribution", 15, yPos); doc.setFont(undefined, 'normal'); yPos += 12;
 
-            // Draw stacked bar
             const total = readings.length;
             const barWidth = 180;
             let currentX = 15;
+            const statusColors = {'normal': [52, 168, 83], 'high-normal': [251, 188, 5], 'grade1': [245, 124, 0], 'grade2': [234, 67, 53], 'low': [66, 133, 244]};
+            const statusLabels = {'normal': 'Normal', 'high-normal': 'High-Normal', 'grade1': 'Grade 1 HTN', 'grade2': 'Grade 2 HTN', 'low': 'Low BP'};
 
-            const statusColors = {
-                'normal': [52, 168, 83],
-                'high-normal': [251, 188, 5],
-                'grade1': [245, 124, 0],
-                'grade2': [234, 67, 53],
-                'low': [66, 133, 244]
-            };
-
-            const statusLabels = {
-                'normal': 'Normal',
-                'high-normal': 'High-Normal',
-                'grade1': 'Grade 1 HTN',
-                'grade2': 'Grade 2 HTN',
-                'low': 'Low BP'
-            };
-
-            // Draw stacked bar
             Object.keys(statusCounts).forEach(status => {
                 const count = statusCounts[status];
                 if(count > 0) {
-                    const width = (count / total) * barWidth;
-                    const color = statusColors[status] || [128, 128, 128];
-                    doc.setFillColor(color[0], color[1], color[2]);
-                    doc.rect(currentX, yPos, width, 20, 'F');
-
-                    // Add percentage text if bar is wide enough
-                    if(width > 25) {
-                        doc.setTextColor(255, 255, 255);
-                        doc.setFontSize(10);
-                        doc.setFont(undefined, 'bold');
-                        doc.text(`${Math.round((count/total)*100)}%`, currentX + 5, yPos + 13);
-                        doc.setFont(undefined, 'normal');
-                    }
-
+                    const width = (count / total) * barWidth; const color = statusColors[status] || [128, 128, 128];
+                    doc.setFillColor(color[0], color[1], color[2]); doc.rect(currentX, yPos, width, 20, 'F');
+                    if(width > 25) { doc.setTextColor(255, 255, 255); doc.setFontSize(10); doc.setFont(undefined, 'bold'); doc.text(`${Math.round((count/total)*100)}%`, currentX + 5, yPos + 13); doc.setFont(undefined, 'normal'); }
                     currentX += width;
                 }
             });
 
             yPos += 28;
-
-            // Legend with colored boxes
             doc.setFontSize(9);
-            let legendX = 15;
-            let legendY = yPos;
+            let legendX = 15; let legendY = yPos;
 
             Object.keys(statusCounts).forEach((status, idx) => {
                 const count = statusCounts[status];
                 if(count > 0) {
-                    if(legendX > 140) {
-                        legendX = 15;
-                        legendY += 12;
-                    }
-
+                    if(legendX > 140) { legendX = 15; legendY += 12; }
                     const color = statusColors[status] || [128, 128, 128];
-                    doc.setFillColor(color[0], color[1], color[2]);
-                    doc.roundedRect(legendX, legendY - 4, 8, 8, 2, 2, 'F');
-
-                    doc.setTextColor(0, 0, 0);
-                    doc.text(`${statusLabels[status]}: ${count}`, legendX + 12, legendY + 2);
-                    legendX += 55;
+                    doc.setFillColor(color[0], color[1], color[2]); doc.roundedRect(legendX, legendY - 4, 8, 8, 2, 2, 'F');
+                    doc.setTextColor(0, 0, 0); doc.text(`${statusLabels[status]}: ${count}`, legendX + 12, legendY + 2); legendX += 55;
                 }
             });
 
             yPos = legendY + 20;
 
-            // Add chart from dashboard if available
             if(includeCharts) {
                 try {
                     const trendCanvas = document.getElementById('bpTrendChart');
                     if(trendCanvas && yPos < 180) {
-                        doc.setFontSize(12);
-                        doc.setTextColor(66, 133, 244);
-                        doc.setFont(undefined, 'bold');
-                        doc.text("BP Trend Visualization", 15, yPos);
-                        doc.setFont(undefined, 'normal');
-                        yPos += 5;
-
+                        doc.setFontSize(12); doc.setTextColor(66, 133, 244); doc.setFont(undefined, 'bold'); doc.text("BP Trend Visualization", 15, yPos); doc.setFont(undefined, 'normal'); yPos += 5;
                         const imgData = trendCanvas.toDataURL('image/png', 1.0);
-                        const imgWidth = 180;
-                        const imgHeight = (trendCanvas.height / trendCanvas.width) * imgWidth;
-
-                        // Ensure it fits on page
-                        const finalHeight = Math.min(imgHeight, 80);
-                        doc.addImage(imgData, 'PNG', 15, yPos, imgWidth, finalHeight);
-                        yPos += finalHeight + 15;
+                        const imgWidth = 180; const finalHeight = Math.min((trendCanvas.height / trendCanvas.width) * imgWidth, 80);
+                        doc.addImage(imgData, 'PNG', 15, yPos, imgWidth, finalHeight); yPos += finalHeight + 15;
                     }
-                } catch(e) {
-                    console.log('Chart not added to PDF:', e);
-                }
+                } catch(e) {}
             }
 
-            // Detailed Readings Table
             if(includeReadings) {
-                if(yPos > 240) {
-                    doc.addPage();
-                    yPos = 20;
-                }
+                if(yPos > 240) { doc.addPage(); yPos = 20; }
+                doc.setFontSize(12); doc.setTextColor(66, 133, 244); doc.setFont(undefined, 'bold'); doc.text("Detailed Readings Log", 15, yPos); doc.setFont(undefined, 'normal'); yPos += 10;
+                doc.setFillColor(66, 133, 244); doc.setTextColor(255, 255, 255); doc.rect(10, yPos - 6, 190, 10, 'F');
+                doc.setFontSize(8); doc.setFont(undefined, 'bold');
+                doc.text("Date", 12, yPos); doc.text("Time", 42, yPos); doc.text("BP (mmHg)", 68, yPos); doc.text("Pulse", 95, yPos); doc.text("Classification", 115, yPos); doc.text("Notes", 160, yPos);
+                doc.setFont(undefined, 'normal'); yPos += 10; doc.setTextColor(0, 0, 0);
 
-                doc.setFontSize(12);
-                doc.setTextColor(66, 133, 244);
-                doc.setFont(undefined, 'bold');
-                doc.text("Detailed Readings Log", 15, yPos);
-                doc.setFont(undefined, 'normal');
-                yPos += 10;
-
-                // Table header
-                doc.setFillColor(66, 133, 244);
-                doc.setTextColor(255, 255, 255);
-                doc.rect(10, yPos - 6, 190, 10, 'F');
-                doc.setFontSize(8);
-                doc.setFont(undefined, 'bold');
-                doc.text("Date", 12, yPos);
-                doc.text("Time", 42, yPos);
-                doc.text("BP (mmHg)", 68, yPos);
-                doc.text("Pulse", 95, yPos);
-                doc.text("Classification", 115, yPos);
-                doc.text("Notes", 160, yPos);
-                doc.setFont(undefined, 'normal');
-                yPos += 10;
-
-                // Table rows
-                doc.setTextColor(0, 0, 0);
                 readings.forEach((r, idx) => {
                     if(yPos > 285) {
-                        doc.addPage();
-                        yPos = 20;
-                        // Redraw header
-                        doc.setFillColor(66, 133, 244);
-                        doc.setTextColor(255, 255, 255);
-                        doc.rect(10, yPos - 6, 190, 10, 'F');
-                        doc.setFontSize(8);
-                        doc.setFont(undefined, 'bold');
-                        doc.text("Date", 12, yPos);
-                        doc.text("Time", 42, yPos);
-                        doc.text("BP (mmHg)", 68, yPos);
-                        doc.text("Pulse", 95, yPos);
-                        doc.text("Classification", 115, yPos);
-                        doc.text("Notes", 160, yPos);
-                        doc.setFont(undefined, 'normal');
-                        yPos += 10;
-                        doc.setTextColor(0, 0, 0);
+                        doc.addPage(); yPos = 20;
+                        doc.setFillColor(66, 133, 244); doc.setTextColor(255, 255, 255); doc.rect(10, yPos - 6, 190, 10, 'F');
+                        doc.setFontSize(8); doc.setFont(undefined, 'bold');
+                        doc.text("Date", 12, yPos); doc.text("Time", 42, yPos); doc.text("BP (mmHg)", 68, yPos); doc.text("Pulse", 95, yPos); doc.text("Classification", 115, yPos); doc.text("Notes", 160, yPos);
+                        doc.setFont(undefined, 'normal'); yPos += 10; doc.setTextColor(0, 0, 0);
                     }
-
-                    // Alternate row colors
-                    if(idx % 2 === 0) {
-                        doc.setFillColor(245, 245, 245);
-                        doc.rect(10, yPos - 6, 190, 8, 'F');
-                    }
-
-                    // Status color indicator
+                    if(idx % 2 === 0) { doc.setFillColor(245, 245, 245); doc.rect(10, yPos - 6, 190, 8, 'F'); }
                     const statusColor = statusColors[r.status] || [128, 128, 128];
-                    doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
-                    doc.circle(112, yPos - 2, 2, 'F');
-
-                    doc.setFontSize(7);
-                    doc.text(r.date, 12, yPos);
-                    doc.text(r.time, 42, yPos);
-                    doc.setFont(undefined, 'bold');
-                    doc.text(`${r.sys}/${r.dia}`, 68, yPos);
-                    doc.setFont(undefined, 'normal');
-                    doc.text(r.pulse ? r.pulse.toString() : '-', 95, yPos);
-                    doc.text(statusLabels[r.status] || r.status, 115, yPos);
-                    if(r.notes) {
-                        const notes = r.notes.length > 20 ? r.notes.substring(0, 20) + '...' : r.notes;
-                        doc.text(notes, 160, yPos);
-                    }
+                    doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]); doc.circle(112, yPos - 2, 2, 'F');
+                    doc.setFontSize(7); doc.text(r.date, 12, yPos); doc.text(r.time, 42, yPos); doc.setFont(undefined, 'bold'); doc.text(`${r.sys}/${r.dia}`, 68, yPos); doc.setFont(undefined, 'normal');
+                    doc.text(r.pulse ? r.pulse.toString() : '-', 95, yPos); doc.text(statusLabels[r.status] || r.status, 115, yPos);
+                    if(r.notes) doc.text(r.notes.length > 20 ? r.notes.substring(0, 20) + '...' : r.notes, 160, yPos);
                     yPos += 8;
                 });
             }
 
-            // Footer on all pages
             const pageCount = doc.internal.getNumberOfPages();
             for(let i = 1; i <= pageCount; i++) {
-                doc.setPage(i);
-                doc.setFontSize(8);
-                doc.setTextColor(128, 128, 128);
+                doc.setPage(i); doc.setFontSize(8); doc.setTextColor(128, 128, 128);
                 doc.text(`BP Tracker Medical Report - Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
-                doc.setFontSize(7);
-                doc.text("This report is generated for informational purposes. Please consult your healthcare provider for medical advice.", 105, 295, { align: 'center' });
             }
-
             doc.save(`BP_Report_${p ? p.name.replace(/\s+/g, '_') : 'Patient'}_${new Date().toISOString().split('T')[0]}.pdf`);
-            showNotification('Visual medical report downloaded successfully');
+            showNotification('Medical report downloaded');
         }
 
-        
-        // Analytics Dashboard Functions
         function updateAnalytics() {
             if(!currentPatientId) return;
-
             const filterType = document.getElementById('analytics-date-filter').value;
             const customRangeDiv = document.getElementById('analytics-custom-range');
+            if(filterType === 'custom') customRangeDiv.classList.remove('hidden'); else customRangeDiv.classList.add('hidden');
 
-            // Show/hide custom date range
-            if(filterType === 'custom') {
-                customRangeDiv.classList.remove('hidden');
-            } else {
-                customRangeDiv.classList.add('hidden');
-            }
-
-            // Get filtered readings based on date filter
             let readings = db.readings.filter(r => r.patientId === currentPatientId);
             const today = new Date().toISOString().split('T')[0];
 
             switch(filterType) {
-                case 'today':
-                    readings = readings.filter(r => r.date === today);
-                    break;
-                case '7days':
-                    const d7 = new Date();
-                    d7.setDate(d7.getDate() - 7);
-                    readings = readings.filter(r => new Date(r.date) >= d7);
-                    break;
-                case '30days':
-                    const d30 = new Date();
-                    d30.setDate(d30.getDate() - 30);
-                    readings = readings.filter(r => new Date(r.date) >= d30);
-                    break;
-                case '90days':
-                    const d90 = new Date();
-                    d90.setDate(d90.getDate() - 90);
-                    readings = readings.filter(r => new Date(r.date) >= d90);
-                    break;
+                case 'today': readings = readings.filter(r => r.date === today); break;
+                case '7days': const d7 = new Date(); d7.setDate(d7.getDate() - 7); readings = readings.filter(r => new Date(r.date) >= d7); break;
+                case '30days': const d30 = new Date(); d30.setDate(d30.getDate() - 30); readings = readings.filter(r => new Date(r.date) >= d30); break;
+                case '90days': const d90 = new Date(); d90.setDate(d90.getDate() - 90); readings = readings.filter(r => new Date(r.date) >= d90); break;
                 case 'custom':
-                    const startDate = document.getElementById('analytics-start-date').value;
-                    const endDate = document.getElementById('analytics-end-date').value;
-                    if(startDate) readings = readings.filter(r => r.date >= startDate);
-                    if(endDate) readings = readings.filter(r => r.date <= endDate);
-                    break;
-                case 'all':
-                default:
-                    // Keep all readings
+                    const startDate = document.getElementById('analytics-start-date').value; const endDate = document.getElementById('analytics-end-date').value;
+                    if(startDate) readings = readings.filter(r => r.date >= startDate); if(endDate) readings = readings.filter(r => r.date <= endDate);
                     break;
             }
 
             if(readings.length === 0) {
-                document.getElementById('analytics-avg-bp').textContent = '--/--';
-                document.getElementById('analytics-normal-rate').textContent = '--%';
-                document.getElementById('analytics-htn-rate').textContent = '--%';
-                document.getElementById('monthly-comparison-container').innerHTML = 
-                    '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">No readings in selected date range</div>';
+                document.getElementById('analytics-avg-bp').textContent = '--/--'; document.getElementById('analytics-normal-rate').textContent = '--%'; document.getElementById('analytics-htn-rate').textContent = '--%';
+                document.getElementById('monthly-comparison-container').innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">No readings in selected date range</div>';
                 return;
             }
 
@@ -2196,274 +1302,101 @@
             const statusCounts = calculateStatusDistribution(readings);
             const total = readings.length;
 
-            // Update key metrics
             document.getElementById('analytics-avg-bp').textContent = `${stats.avgSys}/${stats.avgDia}`;
+            document.getElementById('analytics-normal-rate').textContent = `${Math.round(((statusCounts['normal'] || 0) + (statusCounts['low'] || 0)) / total * 100)}%`;
+            document.getElementById('analytics-htn-rate').textContent = `${Math.round(((statusCounts['grade1'] || 0) + (statusCounts['grade2'] || 0)) / total * 100)}%`;
 
-            const normalCount = (statusCounts['normal'] || 0) + (statusCounts['low'] || 0);
-            const normalRate = Math.round((normalCount / total) * 100);
-            document.getElementById('analytics-normal-rate').textContent = `${normalRate}%`;
-
-            const htnCount = (statusCounts['grade1'] || 0) + (statusCounts['grade2'] || 0);
-            const htnRate = Math.round((htnCount / total) * 100);
-            document.getElementById('analytics-htn-rate').textContent = `${htnRate}%`;
-
-            // Render status distribution chart
             renderStatusDistributionChart(statusCounts, total);
-
-            // Render monthly comparison (replaces weekly trend)
             renderMonthlyComparison(readings);
-
-            // Render time distribution
             renderTimeDistribution(readings);
         }
 
         function renderStatusDistributionChart(counts, total) {
-            const ctx = document.getElementById('statusDistributionChart');
-            if(!ctx) return;
-
-            // Destroy existing chart if any
-            if(window.statusDistChart) {
-                window.statusDistChart.destroy();
-            }
-
-            const data = {
-                labels: ['Normal', 'High-Normal', 'Grade 1', 'Grade 2', 'Low'],
-                datasets: [{
-                    data: [
-                        counts['normal'] || 0,
-                        counts['high-normal'] || 0,
-                        counts['grade1'] || 0,
-                        counts['grade2'] || 0,
-                        counts['low'] || 0
-                    ],
-                    backgroundColor: [
-                        '#34a853',  // Normal - green
-                        '#fbbc05',  // High-normal - yellow
-                        '#f57c00',  // Grade 1 - orange
-                        '#ea4335',  // Grade 2 - red
-                        '#4285f4'   // Low - blue
-                    ],
-                    borderWidth: 0
-                }]
-            };
-
+            const ctx = document.getElementById('statusDistributionChart'); if(!ctx) return;
+            if(window.statusDistChart) window.statusDistChart.destroy();
             const isDark = db.settings.theme === 'dark';
 
             window.statusDistChart = new Chart(ctx, {
                 type: 'doughnut',
-                data: data,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    cutout: '60%',
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
-                            titleColor: isDark ? '#e8eaed' : '#0f172a',
-                            bodyColor: isDark ? '#e8eaed' : '#0f172a',
-                            callbacks: {
-                                label: function(context) {
-                                    const val = context.parsed;
-                                    const pct = ((val / total) * 100).toFixed(1);
-                                    return ` ${context.label}: ${val} (${pct}%)`;
-                                }
-                            }
-                        }
-                    }
-                }
+                data: {
+                    labels: ['Normal', 'High-Normal', 'Grade 1', 'Grade 2', 'Low'],
+                    datasets: [{ data: [counts['normal']||0, counts['high-normal']||0, counts['grade1']||0, counts['grade2']||0, counts['low']||0], backgroundColor: ['#34a853', '#fbbc05', '#f57c00', '#ea4335', '#4285f4'], borderWidth: 0 }]
+                },
+                options: { cutout: '60%', plugins: { legend: { display: false }, tooltip: { backgroundColor: isDark ? '#1f1f1f' : '#ffffff', titleColor: isDark ? '#e8eaed' : '#0f172a', bodyColor: isDark ? '#e8eaed' : '#0f172a', callbacks: { label: function(c) { return ` ${c.label}: ${c.parsed} (${((c.parsed/total)*100).toFixed(1)}%)`; } } } } }
             });
 
-            // Update legend
-            const legendHtml = `
+            document.getElementById('status-legend').innerHTML = `
                 <div style="margin-bottom: 8px;"><span style="display: inline-block; width: 12px; height: 12px; background: #34a853; border-radius: 2px; margin-right: 8px;"></span>Normal: ${counts['normal'] || 0}</div>
                 <div style="margin-bottom: 8px;"><span style="display: inline-block; width: 12px; height: 12px; background: #fbbc05; border-radius: 2px; margin-right: 8px;"></span>High-Normal: ${counts['high-normal'] || 0}</div>
                 <div style="margin-bottom: 8px;"><span style="display: inline-block; width: 12px; height: 12px; background: #f57c00; border-radius: 2px; margin-right: 8px;"></span>Grade 1 HTN: ${counts['grade1'] || 0}</div>
                 <div style="margin-bottom: 8px;"><span style="display: inline-block; width: 12px; height: 12px; background: #ea4335; border-radius: 2px; margin-right: 8px;"></span>Grade 2 HTN: ${counts['grade2'] || 0}</div>
                 <div><span style="display: inline-block; width: 12px; height: 12px; background: #4285f4; border-radius: 2px; margin-right: 8px;"></span>Low BP: ${counts['low'] || 0}</div>
             `;
-            document.getElementById('status-legend').innerHTML = legendHtml;
         }
 
         function renderMonthlyComparison(readings) {
-            const container = document.getElementById('monthly-comparison-container');
-            if(!container) return;
-
-            // Group readings by month
+            const container = document.getElementById('monthly-comparison-container'); if(!container) return;
             const monthlyData = {};
             readings.forEach(r => {
-                const date = new Date(r.date);
-                const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-                const monthSortKey = date.toISOString().slice(0, 7);
-
-                if(!monthlyData[monthSortKey]) {
-                    monthlyData[monthSortKey] = {
-                        displayName: monthKey,
-                        sys: [],
-                        dia: [],
-                        readings: 0
-                    };
-                }
-                monthlyData[monthSortKey].sys.push(r.sys);
-                monthlyData[monthSortKey].dia.push(r.dia);
-                monthlyData[monthSortKey].readings++;
+                const date = new Date(r.date); const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }); const monthSortKey = date.toISOString().slice(0, 7);
+                if(!monthlyData[monthSortKey]) monthlyData[monthSortKey] = { displayName: monthKey, sys: [], dia: [], readings: 0 };
+                monthlyData[monthSortKey].sys.push(r.sys); monthlyData[monthSortKey].dia.push(r.dia); monthlyData[monthSortKey].readings++;
             });
-
             const sortedMonths = Object.keys(monthlyData).sort();
-
-            if(sortedMonths.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">No monthly data available</div>';
-                return;
-            }
+            if(sortedMonths.length === 0) { container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">No monthly data available</div>'; return; }
 
             const monthlyAverages = sortedMonths.map(key => {
                 const data = monthlyData[key];
-                return {
-                    month: data.displayName,
-                    avgSys: Math.round(data.sys.reduce((a,b) => a+b, 0) / data.sys.length),
-                    avgDia: Math.round(data.dia.reduce((a,b) => a+b, 0) / data.dia.length),
-                    readings: data.readings
-                };
+                return { month: data.displayName, avgSys: Math.round(data.sys.reduce((a,b) => a+b, 0) / data.sys.length), avgDia: Math.round(data.dia.reduce((a,b) => a+b, 0) / data.dia.length), readings: data.readings };
             });
 
             let html = '';
-
-            // Month-over-month comparison
             if(monthlyAverages.length >= 2) {
-                const current = monthlyAverages[monthlyAverages.length - 1];
-                const previous = monthlyAverages[monthlyAverages.length - 2];
-
-                const sysDiff = current.avgSys - previous.avgSys;
-                const diaDiff = current.avgDia - previous.avgDia;
-                const sysPercent = previous.avgSys !== 0 ? ((sysDiff / previous.avgSys) * 100).toFixed(2) : 0;
-                const diaPercent = previous.avgDia !== 0 ? ((diaDiff / previous.avgDia) * 100).toFixed(2) : 0;
-
+                const current = monthlyAverages[monthlyAverages.length - 1]; const previous = monthlyAverages[monthlyAverages.length - 2];
+                const sysDiff = current.avgSys - previous.avgSys; const diaDiff = current.avgDia - previous.avgDia;
                 html += `<div style="margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, rgba(66,133,244,0.1), rgba(52,168,83,0.1)); border-radius: 10px; border-left: 4px solid var(--primary-color);">
                     <div style="font-size: 13px; font-weight: 600; color: var(--primary-color); margin-bottom: 10px;"><i class="fas fa-chart-line"></i> Month-over-Month Analysis</div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                        <div style="text-align: center; padding: 10px; background: var(--card-bg); border-radius: 8px;">
-                            <div style="font-size: 11px; color: var(--text-secondary);">${previous.month}</div>
-                            <div style="font-size: 20px; font-weight: 700; color: var(--text-color);">${previous.avgSys}/${previous.avgDia}</div>
-                            <div style="font-size: 10px; color: var(--text-secondary);">mmHg</div>
-                        </div>
-                        <div style="text-align: center; padding: 10px; background: var(--card-bg); border-radius: 8px;">
-                            <div style="font-size: 11px; color: var(--text-secondary);">${current.month}</div>
-                            <div style="font-size: 20px; font-weight: 700; color: var(--text-color);">${current.avgSys}/${current.avgDia}</div>
-                            <div style="font-size: 10px; color: var(--text-secondary);">mmHg</div>
-                        </div>
-                    </div>
-                    <div style="background: var(--card-bg); padding: 12px; border-radius: 8px; font-size: 12px;">
-                        <div style="font-weight: 600; margin-bottom: 8px; color: var(--text-color);">Quantitative Analysis:</div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <span>Systolic Change:</span>
-                            <span style="font-weight: 600; color: ${sysDiff > 0 ? 'var(--danger-color)' : 'var(--secondary-color)'};">${sysDiff > 0 ? '+' : ''}${sysDiff} mmHg (${sysDiff > 0 ? '+' : ''}${sysPercent}%)</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>Diastolic Change:</span>
-                            <span style="font-weight: 600; color: ${diaDiff > 0 ? 'var(--danger-color)' : 'var(--secondary-color)'};">${diaDiff > 0 ? '+' : ''}${diaDiff} mmHg (${diaDiff > 0 ? '+' : ''}${diaPercent}%)</span>
-                        </div>
+                        <div style="text-align: center; padding: 10px; background: var(--card-bg); border-radius: 8px;"><div style="font-size: 11px; color: var(--text-secondary);">${previous.month}</div><div style="font-size: 20px; font-weight: 700; color: var(--text-color);">${previous.avgSys}/${previous.avgDia}</div></div>
+                        <div style="text-align: center; padding: 10px; background: var(--card-bg); border-radius: 8px;"><div style="font-size: 11px; color: var(--text-secondary);">${current.month}</div><div style="font-size: 20px; font-weight: 700; color: var(--text-color);">${current.avgSys}/${current.avgDia}</div></div>
                     </div>
                 </div>`;
             }
 
-            // Monthly cards
             html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">';
             monthlyAverages.forEach(month => {
                 const status = getBPStatus(month.avgSys, month.avgDia);
-                const colors = {'normal': '#34a853', 'high-normal': '#fbbc05', 'grade1': '#f57c00', 'grade2': '#ea4335', 'low': '#4285f4'};
-                const color = colors[status] || '#666';
-
+                const color = {'normal': '#34a853', 'high-normal': '#fbbc05', 'grade1': '#f57c00', 'grade2': '#ea4335', 'low': '#4285f4'}[status] || '#666';
                 html += `<div style="background: var(--card-bg); padding: 12px; border-radius: 10px; text-align: center; border-top: 3px solid ${color};">
                     <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px;">${month.month}</div>
                     <div style="font-size: 22px; font-weight: 700; color: var(--text-color); margin-bottom: 3px;">${month.avgSys}/${month.avgDia}</div>
-                    <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 8px;">mmHg average</div>
                     <div style="font-size: 10px; padding: 3px 8px; background: ${color}20; color: ${color}; border-radius: 12px; display: inline-block;">${month.readings} readings</div>
                 </div>`;
             });
-            html += '</div>';
-
-            container.innerHTML = html;
+            container.innerHTML = html + '</div>';
         }
 
         function renderTimeDistribution(readings) {
-            const container = document.getElementById('time-distribution');
-            if(!container) return;
-
-            // Categorize by time of day
-            const timeSlots = {
-                'Morning (6-12)': 0,
-                'Afternoon (12-18)': 0,
-                'Evening (18-22)': 0,
-                'Night (22-6)': 0
-            };
-
+            const container = document.getElementById('time-distribution'); if(!container) return;
+            const timeSlots = { 'Morning (6-12)': 0, 'Afternoon (12-18)': 0, 'Evening (18-22)': 0, 'Night (22-6)': 0 };
             readings.forEach(r => {
                 const hour = parseInt(r.time.split(':')[0]);
-                if(hour >= 6 && hour < 12) timeSlots['Morning (6-12)']++;
-                else if(hour >= 12 && hour < 18) timeSlots['Afternoon (12-18)']++;
-                else if(hour >= 18 && hour < 22) timeSlots['Evening (18-22)']++;
-                else timeSlots['Night (22-6)']++;
+                if(hour >= 6 && hour < 12) timeSlots['Morning (6-12)']++; else if(hour >= 12 && hour < 18) timeSlots['Afternoon (12-18)']++; else if(hour >= 18 && hour < 22) timeSlots['Evening (18-22)']++; else timeSlots['Night (22-6)']++;
             });
-
-            const colors = ['#34a853', '#fbbc05', '#f57c00', '#4285f4'];
-            let html = '';
-            let idx = 0;
-
+            const colors = ['#34a853', '#fbbc05', '#f57c00', '#4285f4']; let html = ''; let idx = 0;
             for(const [slot, count] of Object.entries(timeSlots)) {
-                if(count > 0) {
-                    html += `
-                        <div style="flex: 1; min-width: 100px; background: ${colors[idx]}20; border-left: 4px solid ${colors[idx]}; padding: 10px; border-radius: 8px;">
-                            <div style="font-size: 11px; color: var(--text-secondary);">${slot}</div>
-                            <div style="font-size: 20px; font-weight: 700; color: ${colors[idx]};">${count}</div>
-                            <div style="font-size: 10px; color: var(--text-secondary);">readings</div>
-                        </div>
-                    `;
-                }
+                if(count > 0) { html += `<div style="flex: 1; min-width: 100px; background: ${colors[idx]}20; border-left: 4px solid ${colors[idx]}; padding: 10px; border-radius: 8px;"><div style="font-size: 11px; color: var(--text-secondary);">${slot}</div><div style="font-size: 20px; font-weight: 700; color: ${colors[idx]};">${count}</div></div>`; }
                 idx++;
             }
-
             container.innerHTML = html || '<div style="color: var(--text-secondary); font-size: 12px;">No time data available</div>';
         }
 
-        // Helper function for status distribution
-        function calculateStatusDistribution(readings) {
-            const counts = {
-                'normal': 0,
-                'high-normal': 0,
-                'grade1': 0,
-                'grade2': 0,
-                'low': 0
-            };
-            readings.forEach(r => {
-                if(counts.hasOwnProperty(r.status)) {
-                    counts[r.status]++;
-                }
-            });
-            return counts;
-        }
-
-        // Helper function to get BP status
-        function getBPStatus(s, d) {
-            if(s >= 160 || d >= 100) return 'grade2';
-            if(s >= 140 || d >= 90) return 'grade1';
-            if(s >= 130 || d >= 85) return 'high-normal';
-            if(s < 90 && d < 60) return 'low';
-            return 'normal';
-        }
+        function calculateStatusDistribution(readings) { const counts = { 'normal': 0, 'high-normal': 0, 'grade1': 0, 'grade2': 0, 'low': 0 }; readings.forEach(r => { if(counts.hasOwnProperty(r.status)) counts[r.status]++; }); return counts; }
 
         function showNotification(m, t = 'success') {
-            const n = document.getElementById('notification');
-            const nt = document.getElementById('notification-text');
-            const ni = n.querySelector('i');
-
-            nt.textContent = m;
-            n.style.backgroundColor = t === 'error' ? '#d32f2f' : '#323232';
-            ni.className = t === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
-
-            n.classList.add('show');
-            setTimeout(() => n.classList.remove('show'), 3000);
+            const n = document.getElementById('notification'); const nt = document.getElementById('notification-text'); const ni = n.querySelector('i');
+            nt.textContent = m; n.style.backgroundColor = t === 'error' ? '#d32f2f' : '#323232'; ni.className = t === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+            n.classList.add('show'); setTimeout(() => n.classList.remove('show'), 3000);
         }
     </script>
 </body>
