@@ -65,7 +65,80 @@
     "medical",
     "lifestyle"
   ],
+  "screenshots": [
+    {
+      "src": "screenshots/dashboard.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard view with BP statistics"
+    },
+    {
+      "src": "screenshots/readings.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Readings history table"
+    },
+    {
+      "src": "screenshots/reports.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Advanced analytics and reports"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Reading",
+      "short_name": "Add Reading",
+      "description": "Quickly add a new blood pressure reading",
+      "url": "./index.html?action=add-reading",
+      "icons": [
+        {
+          "src": "icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "View Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your BP dashboard and statistics",
+      "url": "./index.html?tab=dashboard",
+      "icons": [
+        {
+          "src": "icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Generate Report",
+      "short_name": "Reports",
+      "description": "View analytics and generate PDF reports",
+      "url": "./index.html?tab=reports",
+      "icons": [
+        {
+          "src": "icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
   "features": [
-    "offline"
-  ]
+    "offline",
+    "background-sync"
+  ],
+  "id": "./",
+  "launch_handler": {
+    "client_mode": [
+      "navigate-existing",
+      "auto"
+    ]
+  },
+  "edge_side_panel": {},
+  "handle_links": "preferred"
 }
