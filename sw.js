@@ -1,17 +1,17 @@
 // BP Tracker Service Worker
-// Provides offline functionality and caching
+// Provides offline functionality and guaranteed updating mechanism
 
-const CACHE_NAME = 'bp-tracker-v2.5-native';
+const CACHE_NAME = 'bp-tracker-v2.6-native'; // INCREMENTED VERSION to bust old cache
 const STATIC_ASSETS = [
-    '/',
-    '/index.html',
-    '/manifest.json',
-    // CDN resources will be cached dynamically
+    './',
+    './index.html',
+    './manifest.json'
 ];
 
-// Install event - cache static assets
 self.addEventListener('install', (event) => {
     console.log('[SW] Installing Service Worker...');
+    // Force the waiting service worker to become the active service worker
+    self.skipWaiting();
 
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -19,21 +19,12 @@ self.addEventListener('install', (event) => {
                 console.log('[SW] Caching static assets');
                 return cache.addAll(STATIC_ASSETS);
             })
-            .then(() => {
-                console.log('[SW] Static assets cached successfully');
-                // FORCE ACTIVATION: Skip waiting immediately
-                return self.skipWaiting();
-            })
-            .catch((err) => {
-                console.error('[SW] Cache failed:', err);
-            })
+            .catch((err) => console.error('[SW] Cache failed:', err))
     );
 });
 
-// Activate event - clean up old caches and claim clients
 self.addEventListener('activate', (event) => {
     console.log('[SW] Activating Service Worker...');
-
     event.waitUntil(
         caches.keys()
             .then((cacheNames) => {
@@ -48,201 +39,58 @@ self.addEventListener('activate', (event) => {
             })
             .then(() => {
                 console.log('[SW] Service Worker activated');
-                // CRITICAL: Claim all clients immediately so updates apply to current tabs
-                return self.clients.claim();
+                return self.clients.claim(); // Take control of all pages immediately
             })
     );
 });
 
-// Fetch event - serve from cache or network
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // Skip non-GET requests
-    if (request.method !== 'GET') {
+    if (request.method !== 'GET' || url.protocol === 'chrome-extension:') return;
+
+    // STRATEGY: Network First, Fallback to Cache for HTML (Ensures updates always load)
+    if (request.mode === 'navigate' || request.headers.get('accept').includes('text/html')) {
+        event.respondWith(
+            fetch(request)
+                .then((networkResponse) => {
+                    return caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(request, networkResponse.clone());
+                        return networkResponse;
+                    });
+                })
+                .catch(() => {
+                    console.log('[SW] Offline, falling back to cached index.html');
+                    return caches.match('./index.html').then(response => {
+                        return response || caches.match('./');
+                    });
+                })
+        );
         return;
     }
 
-    // Skip chrome-extension requests
-    if (url.protocol === 'chrome-extension:') {
-        return;
-    }
-
-    // Strategy: Cache First for static assets, Network First for API calls
+    // STRATEGY: Cache First, Fallback to Network for everything else (CDNs, Images)
     event.respondWith(
         caches.match(request)
             .then((cachedResponse) => {
-                // Return cached version if available
-                if (cachedResponse) {
-                    // Check if it's a CDN resource that needs updating
-                    if (isCDNResource(url)) {
-                        // Return cached but also fetch update in background
-                        fetchAndCache(request);
-                        return cachedResponse;
+                if (cachedResponse) return cachedResponse;
+                
+                return fetch(request).then((networkResponse) => {
+                    if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === 'opaque') {
+                        return networkResponse;
                     }
-                    return cachedResponse;
-                }
-
-                // Otherwise fetch from network
-                return fetchAndCache(request);
-            })
-            .catch(() => {
-                // If both cache and network fail, show offline page
-                if (request.mode === 'navigate') {
-                    return caches.match('/index.html');
-                }
-
-                // Return a simple offline response for other resources
-                return new Response('Offline - Resource not available', {
-                    status: 503,
-                    statusText: 'Service Unavailable',
-                    headers: new Headers({
-                        'Content-Type': 'text/plain'
-                    })
+                    return caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(request, networkResponse.clone());
+                        return networkResponse;
+                    });
                 });
             })
     );
 });
 
-// Helper function to fetch and cache
-async function fetchAndCache(request) {
-    try {
-        const networkResponse = await fetch(request);
-
-        // Don't cache non-successful responses
-        if (!networkResponse || networkResponse.status !== 200) {
-            return networkResponse;
-        }
-
-        // Don't cache opaque responses (CDN cross-origin)
-        if (networkResponse.type === 'opaque') {
-            return networkResponse;
-        }
-
-        // Clone the response before caching
-        const responseToCache = networkResponse.clone();
-
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(request, responseToCache);
-
-        return networkResponse;
-    } catch (error) {
-        console.error('[SW] Fetch failed:', error);
-        throw error;
-    }
-}
-
-// Check if URL is a CDN resource
-function isCDNResource(url) {
-    const cdnDomains = [
-        'cdn.jsdelivr.net',
-        'cdnjs.cloudflare.com',
-        'fonts.googleapis.com',
-        'fonts.gstatic.com'
-    ];
-
-    return cdnDomains.some(domain => url.hostname.includes(domain));
-}
-
-// Background Sync for offline data submission
-self.addEventListener('sync', (event) => {
-    if (event.tag === 'sync-readings') {
-        console.log('[SW] Background sync triggered');
-        event.waitUntil(syncReadings());
-    }
-});
-
-// Push notification handling (for future expansion)
-self.addEventListener('push', (event) => {
-    if (event.data) {
-        const data = event.data.json();
-        const options = {
-            body: data.body || 'Reminder to take your BP reading',
-            icon: '/icons/icon-192x192.png',
-            badge: '/icons/icon-72x72.png',
-            tag: 'bp-reminder',
-            requireInteraction: true,
-            actions: [
-                {
-                    action: 'add-reading',
-                    title: 'Add Reading'
-                },
-                {
-                    action: 'dismiss',
-                    title: 'Dismiss'
-                }
-            ]
-        };
-
-        event.waitUntil(
-            self.registration.showNotification(
-                data.title || 'BP Tracker Reminder',
-                options
-            )
-        );
-    }
-});
-
-// Notification click handling
-self.addEventListener('notificationclick', (event) => {
-    event.notification.close();
-
-    if (event.action === 'add-reading') {
-        event.waitUntil(
-            clients.openWindow('/?action=add-reading')
-        );
-    } else {
-        event.waitUntil(
-            clients.openWindow('/')
-        );
-    }
-});
-
-// Message handling from main thread
 self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
         self.skipWaiting();
     }
-
-    if (event.data && event.data.type === 'GET_VERSION') {
-        event.ports[0].postMessage({ version: CACHE_NAME });
-    }
 });
-
-// Periodic sync for daily reminders (if supported)
-self.addEventListener('periodicsync', (event) => {
-    if (event.tag === 'daily-reminder') {
-        event.waitUntil(showDailyReminder());
-    }
-});
-
-// Helper: Sync readings (placeholder for future backend integration)
-async function syncReadings() {
-    // This would sync with a backend when online
-    console.log('[SW] Syncing readings...');
-    return Promise.resolve();
-}
-
-// Helper: Show daily reminder
-async function showDailyReminder() {
-    const now = new Date();
-    const hour = now.getHours();
-
-    // Only show during reasonable hours (8 AM - 8 PM)
-    if (hour >= 8 && hour <= 20) {
-        return self.registration.showNotification('BP Tracker', {
-            body: 'Time to take your blood pressure reading!',
-            icon: '/icons/icon-192x192.png',
-            badge: '/icons/icon-72x72.png',
-            tag: 'daily-reminder',
-            actions: [
-                { action: 'add-reading', title: 'Add Reading' },
-                { action: 'dismiss', title: 'Dismiss' }
-            ]
-        });
-    }
-}
-
-// Console log on successful registration
-console.log('[SW] BP Tracker Service Worker loaded');
